@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { Link, useNavigate, useLocation } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../context/ToastContext';
 import { formatApiErrorMessage } from '../../services/apiClient';
@@ -12,14 +12,12 @@ import {
   EyeOff,
   ArrowRight,
   AlertCircle,
-  Sparkles,
 } from 'lucide-react';
 
 export const LoginPage: React.FC = () => {
-  const { login, setDemoUser } = useAuth();
+  const { login, isAuthenticated, role } = useAuth();
   const { success, error } = useToast();
   const navigate = useNavigate();
-  const location = useLocation();
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -27,26 +25,39 @@ export const LoginPage: React.FC = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
+  // If a valid session already exists, immediately redirect to correct role dashboard
+  useEffect(() => {
+    if (isAuthenticated && role) {
+      if (role === 'admin') navigate('/admin', { replace: true });
+      else if (role === 'staff') navigate('/staff', { replace: true });
+      else if (role === 'student') navigate('/student', { replace: true });
+    }
+  }, [isAuthenticated, role, navigate]);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMessage(null);
 
-    if (!email || !password) {
+    const cleanEmail = email.trim();
+    if (!cleanEmail || !password) {
       setErrorMessage('Please provide both your university email and password.');
       return;
     }
 
     setIsLoading(true);
     try {
-      const profile = await login({ email, password });
-      success('Welcome back!', `Signed in as ${profile.full_name} (${profile.role})`);
+      const profile = await login({ email: cleanEmail, password });
+      success('Welcome back!', `Signed in as ${profile.full_name || profile.email}`);
 
-      if (profile.role === 'admin') {
-        navigate('/admin');
-      } else if (profile.role === 'staff') {
-        navigate('/staff');
+      const userRole = (profile.role || '').toLowerCase();
+      if (userRole === 'admin') {
+        navigate('/admin', { replace: true });
+      } else if (userRole === 'staff') {
+        navigate('/staff', { replace: true });
+      } else if (userRole === 'student') {
+        navigate('/student', { replace: true });
       } else {
-        navigate('/student');
+        throw new Error(`Unrecognized user role received from database: ${profile.role}`);
       }
     } catch (err: any) {
       const msg = formatApiErrorMessage(err);
@@ -55,15 +66,6 @@ export const LoginPage: React.FC = () => {
     } finally {
       setIsLoading(false);
     }
-  };
-
-  const handleQuickDemo = (demoRole: 'student' | 'staff' | 'admin') => {
-    setDemoUser(demoRole);
-    success(
-      `Preview Mode: ${demoRole.toUpperCase()}`,
-      `Navigating to ${demoRole} operations dashboard in preview mode.`
-    );
-    navigate(demoRole === 'admin' ? '/admin' : demoRole === 'staff' ? '/staff' : '/student');
   };
 
   return (
@@ -113,7 +115,7 @@ export const LoginPage: React.FC = () => {
                       required
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
-                      placeholder="student@example.com"
+                      placeholder="name@university.edu"
                       className="w-full bg-[#151F35] border border-white/10 rounded-xl px-10 py-2.5 text-xs sm:text-sm text-[#F1F5F9] placeholder:text-[#A7B4CC]/40 focus:outline-hidden focus:border-cyan-400/60 focus:ring-1 focus:ring-cyan-400/30 transition-all"
                     />
                   </div>
@@ -173,38 +175,10 @@ export const LoginPage: React.FC = () => {
               </div>
             </div>
 
-            {/* Interactive Fast Evaluator Switcher */}
             <div className="mt-8 pt-6 border-t border-white/5">
-              <div className="flex items-center gap-2 text-xs text-[#A7B4CC] mb-3">
-                <Sparkles className="w-3.5 h-3.5 text-cyan-400" />
-                <span className="font-semibold text-[#F1F5F9]">Interactive Demo Quick-Access</span>
-              </div>
-              <div className="grid grid-cols-3 gap-2">
-                <button
-                  type="button"
-                  onClick={() => handleQuickDemo('student')}
-                  className="p-2 text-center rounded-lg bg-[#151F35] hover:bg-[#1C2942] border border-emerald-500/30 transition-colors"
-                >
-                  <span className="block text-[11px] font-semibold text-emerald-300">Student</span>
-                  <span className="block text-[10px] text-[#A7B4CC]">Intake view</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => handleQuickDemo('staff')}
-                  className="p-2 text-center rounded-lg bg-[#151F35] hover:bg-[#1C2942] border border-cyan-500/30 transition-colors"
-                >
-                  <span className="block text-[11px] font-semibold text-cyan-300">Staff</span>
-                  <span className="block text-[10px] text-[#A7B4CC]">Queue view</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => handleQuickDemo('admin')}
-                  className="p-2 text-center rounded-lg bg-[#151F35] hover:bg-[#1C2942] border border-violet-500/30 transition-colors"
-                >
-                  <span className="block text-[11px] font-semibold text-violet-300">Admin</span>
-                  <span className="block text-[10px] text-[#A7B4CC]">Approval view</span>
-                </button>
-              </div>
+              <p className="text-[11px] text-[#A7B4CC] text-center">
+                Role authorization is determined strictly by the central university database.
+              </p>
             </div>
           </div>
 

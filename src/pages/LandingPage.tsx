@@ -22,19 +22,15 @@ import {
 } from 'lucide-react';
 
 export const LandingPage: React.FC = () => {
-  const { isAuthenticated, role, setDemoUser } = useAuth();
+  const { isAuthenticated, role } = useAuth();
   const navigate = useNavigate();
   const [activeWorkflowStep, setActiveWorkflowStep] = useState(0);
 
   const getDashboardPath = () => {
     if (role === 'admin') return '/admin';
     if (role === 'staff') return '/staff';
-    return '/student';
-  };
-
-  const handleLaunchRoleDemo = (demoRole: 'student' | 'staff' | 'admin') => {
-    setDemoUser(demoRole);
-    navigate(demoRole === 'admin' ? '/admin' : demoRole === 'staff' ? '/staff' : '/student');
+    if (role === 'student') return '/student';
+    return '/login';
   };
 
   const workflowSteps = [
@@ -194,36 +190,6 @@ export const LandingPage: React.FC = () => {
                     </a>
                   </>
                 )}
-              </div>
-
-              {/* Interactive Evaluator Quick-Launch */}
-              <div className="pt-6 border-t border-white/5">
-                <p className="text-xs font-semibold text-[#A7B4CC] tracking-wider uppercase mb-3">
-                  Interactive Evaluator Quick-Launch
-                </p>
-                <div className="flex flex-wrap items-center gap-2.5">
-                  <button
-                    onClick={() => handleLaunchRoleDemo('student')}
-                    className="px-3 py-1.5 text-xs font-medium text-emerald-300 bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/30 rounded-lg transition-colors inline-flex items-center gap-1.5"
-                  >
-                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
-                    <span>Launch Student Portal</span>
-                  </button>
-                  <button
-                    onClick={() => handleLaunchRoleDemo('staff')}
-                    className="px-3 py-1.5 text-xs font-medium text-cyan-300 bg-cyan-500/10 hover:bg-cyan-500/20 border border-cyan-500/30 rounded-lg transition-colors inline-flex items-center gap-1.5"
-                  >
-                    <span className="w-1.5 h-1.5 rounded-full bg-cyan-400" />
-                    <span>Launch Staff Hub</span>
-                  </button>
-                  <button
-                    onClick={() => handleLaunchRoleDemo('admin')}
-                    className="px-3 py-1.5 text-xs font-medium text-violet-300 bg-violet-500/10 hover:bg-violet-500/20 border border-violet-500/30 rounded-lg transition-colors inline-flex items-center gap-1.5"
-                  >
-                    <span className="w-1.5 h-1.5 rounded-full bg-violet-400" />
-                    <span>Launch Admin Command Center</span>
-                  </button>
-                </div>
               </div>
             </div>
 
@@ -416,13 +382,13 @@ export const LandingPage: React.FC = () => {
                 <div className="flex items-center justify-end gap-3 pt-3 border-t border-white/5">
                   <span className="text-[11px] text-[#A7B4CC] mr-auto">Human Approval Required</span>
                   <button
-                    onClick={() => handleLaunchRoleDemo('admin')}
+                    onClick={() => navigate(isAuthenticated ? '/admin/approvals' : '/login')}
                     className="px-3 py-1.5 text-xs font-medium text-rose-300 bg-rose-500/10 hover:bg-rose-500/20 border border-rose-500/20 rounded-lg transition-colors"
                   >
                     Reject
                   </button>
                   <button
-                    onClick={() => handleLaunchRoleDemo('admin')}
+                    onClick={() => navigate(isAuthenticated ? '/admin/approvals' : '/login')}
                     className="px-3 py-1.5 text-xs font-medium text-emerald-300 bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/20 rounded-lg transition-colors"
                   >
                     Approve Reminder
@@ -443,7 +409,7 @@ export const LandingPage: React.FC = () => {
                 Platform Operations Showcase
               </span>
               <h2 className="text-2xl sm:text-3xl font-bold text-[#F1F5F9] mt-2">
-                Demonstrated Live for Faculty, Judges & Visitors
+                Unified Operations for Campus Resolution
               </h2>
               <p className="text-sm text-[#A7B4CC] mt-3 leading-relaxed">
                 CampusResolve AI is connected to production backend services, database, and n8n
@@ -454,7 +420,7 @@ export const LandingPage: React.FC = () => {
                   to="/login"
                   className="px-6 py-3 rounded-xl bg-[#22D3EE] hover:bg-[#67e8f9] text-[#080D1B] font-semibold text-sm transition-colors shadow-md shadow-cyan-500/20"
                 >
-                  Start Live Demonstration
+                  Access Resolution Console
                 </Link>
                 <Link
                   to="/signup"

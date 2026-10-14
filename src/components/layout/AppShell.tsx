@@ -14,7 +14,7 @@ import {
 } from 'lucide-react';
 
 export const AppShell: React.FC = () => {
-  const { user, role, logout, isDemoMode, setDemoUser } = useAuth();
+  const { user, role, logout } = useAuth();
   const [collapsed, setCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [health, setHealth] = useState<HealthStatus | null>(null);
@@ -121,50 +121,6 @@ export const AppShell: React.FC = () => {
               <span className="tabular-nums">
                 {health?.online ? `API Live (${health.latencyMs ?? 0}ms)` : 'Connecting API'}
               </span>
-            </div>
-
-            {/* Role Switcher for Demonstration */}
-            <div className="hidden sm:flex items-center gap-1 bg-[#10182B] p-1 rounded-lg border border-white/5 text-[11px]">
-              <span className="text-[#A7B4CC] px-2 font-medium">Demo view:</span>
-              <button
-                onClick={() => {
-                  setDemoUser('student');
-                  navigate('/student');
-                }}
-                className={`px-2 py-0.5 rounded transition-colors ${
-                  role === 'student'
-                    ? 'bg-emerald-500/20 text-emerald-300 font-semibold border border-emerald-500/30'
-                    : 'text-[#A7B4CC] hover:text-[#F1F5F9]'
-                }`}
-              >
-                Student
-              </button>
-              <button
-                onClick={() => {
-                  setDemoUser('staff');
-                  navigate('/staff');
-                }}
-                className={`px-2 py-0.5 rounded transition-colors ${
-                  role === 'staff'
-                    ? 'bg-cyan-500/20 text-cyan-300 font-semibold border border-cyan-500/30'
-                    : 'text-[#A7B4CC] hover:text-[#F1F5F9]'
-                }`}
-              >
-                Staff
-              </button>
-              <button
-                onClick={() => {
-                  setDemoUser('admin');
-                  navigate('/admin');
-                }}
-                className={`px-2 py-0.5 rounded transition-colors ${
-                  role === 'admin'
-                    ? 'bg-violet-500/20 text-violet-300 font-semibold border border-violet-500/30'
-                    : 'text-[#A7B4CC] hover:text-[#F1F5F9]'
-                }`}
-              >
-                Admin
-              </button>
             </div>
 
             {/* Notification Bell */}

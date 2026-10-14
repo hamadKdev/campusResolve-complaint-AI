@@ -21,15 +21,16 @@ export const RoleGuard: React.FC<RoleGuardProps> = ({ allowedRoles }) => {
     );
   }
 
-  if (!isAuthenticated) {
+  if (!isAuthenticated || !role) {
     return <Navigate to="/login" replace />;
   }
 
-  if (allowedRoles && role && !allowedRoles.includes(role)) {
+  if (allowedRoles && !allowedRoles.includes(role)) {
     // Redirect to user's assigned role dashboard
     if (role === 'admin') return <Navigate to="/admin" replace />;
     if (role === 'staff') return <Navigate to="/staff" replace />;
-    return <Navigate to="/student" replace />;
+    if (role === 'student') return <Navigate to="/student" replace />;
+    return <Navigate to="/login" replace />;
   }
 
   return <Outlet />;

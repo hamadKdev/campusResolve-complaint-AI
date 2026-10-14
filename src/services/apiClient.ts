@@ -5,17 +5,45 @@ export const API_BASE_URL = (
 ).replace(/\/$/, '');
 
 const TOKEN_KEY = 'campusresolve_access_token';
+const LEGACY_KEYS = [
+  'campusresolve_role',
+  'campusresolve_user',
+  'demo_user',
+  'demo_role',
+  'demo_account',
+  'user',
+  'role',
+  'mock_user',
+];
 
 export const tokenStorage = {
   get: (): string | null => {
     try {
-      return localStorage.getItem(TOKEN_KEY);
+      // Purge any legacy dev session keys
+      for (const k of LEGACY_KEYS) {
+        localStorage.removeItem(k);
+      }
+      const token = localStorage.getItem(TOKEN_KEY);
+      if (
+        !token ||
+        token.startsWith('demo-') ||
+        token.startsWith('mock-') ||
+        token === 'undefined' ||
+        token === 'null'
+      ) {
+        localStorage.removeItem(TOKEN_KEY);
+        return null;
+      }
+      return token;
     } catch {
       return null;
     }
   },
   set: (token: string): void => {
     try {
+      for (const k of LEGACY_KEYS) {
+        localStorage.removeItem(k);
+      }
       localStorage.setItem(TOKEN_KEY, token);
     } catch (e) {
       console.error('Failed to save access token', e);
@@ -24,6 +52,9 @@ export const tokenStorage = {
   remove: (): void => {
     try {
       localStorage.removeItem(TOKEN_KEY);
+      for (const k of LEGACY_KEYS) {
+        localStorage.removeItem(k);
+      }
     } catch (e) {
       console.error('Failed to remove access token', e);
     }
@@ -53,14 +84,29 @@ export function formatApiErrorMessage(err: unknown): string {
         .map((ve) => `${ve.loc.slice(-1)[0]}: ${ve.msg}`)
         .join('; ');
     }
-    if (err.data && typeof err.data.detail === 'string') {
-      return err.data.detail;
+    const rawData = err.data as any;
+    if (rawData) {
+      if (typeof rawData.detail === 'string' && rawData.detail.trim().length > 0) {
+        return rawData.detail;
+      }
+      if (typeof rawData.message === 'string' && rawData.message.trim().length > 0) {
+        return rawData.message;
+      }
+      if (typeof rawData.error === 'string' && rawData.error.trim().length > 0) {
+        return rawData.error;
+      }
+      if (typeof rawData.error_description === 'string' && rawData.error_description.trim().length > 0) {
+        return rawData.error_description;
+      }
+      if (typeof rawData.msg === 'string' && rawData.msg.trim().length > 0) {
+        return rawData.msg;
+      }
     }
-    if (err.data && typeof err.data.message === 'string') {
-      return err.data.message;
+    if (err.message && err.message !== 'ApiError' && !err.message.includes('[object Object]')) {
+      return err.message;
     }
     if (err.status === 401) {
-      return 'Authentication required or session expired. Please sign in.';
+      return 'Invalid credentials or session expired. Please sign in again.';
     }
     if (err.status === 403) {
       return 'You do not have permission to perform this action.';
@@ -125,13 +171,23 @@ export async function request<T>(endpoint: string, options: RequestOptions = {})
     if (unauthorizedListener) {
       unauthorizedListener();
     }
-    let errorData: ApiErrorResponse | null = null;
+    let errorData: any = null;
     try {
       errorData = await response.json();
     } catch {
       // no-op
     }
-    throw new ApiError(401, errorData?.detail && typeof errorData.detail === 'string' ? errorData.detail : 'Session expired or not authenticated.', errorData);
+    const message =
+      errorData?.detail && typeof errorData.detail === 'string'
+        ? errorData.detail
+        : errorData?.message && typeof errorData.message === 'string'
+        ? errorData.message
+        : errorData?.error_description && typeof errorData.error_description === 'string'
+        ? errorData.error_description
+        : errorData?.error && typeof errorData.error === 'string'
+        ? errorData.error
+        : 'Invalid credentials or session expired.';
+    throw new ApiError(401, message, errorData);
   }
 
   let responseData: any = null;

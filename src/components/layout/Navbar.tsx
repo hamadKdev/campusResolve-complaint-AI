@@ -30,7 +30,8 @@ export const Navbar: React.FC = () => {
   const getDashboardPath = () => {
     if (role === 'admin') return '/admin';
     if (role === 'staff') return '/staff';
-    return '/student';
+    if (role === 'student') return '/student';
+    return '/login';
   };
 
   return (
@@ -95,7 +96,10 @@ export const Navbar: React.FC = () => {
                 <span>Dashboard</span>
               </Link>
               <button
-                onClick={logout}
+                onClick={() => {
+                  logout();
+                  navigate('/login', { replace: true });
+                }}
                 className="p-2 text-[#A7B4CC] hover:text-[#F1F5F9] hover:bg-white/5 rounded-lg transition-colors"
                 title="Sign out"
                 aria-label="Sign out"

@@ -1,5 +1,6 @@
 import React from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
+import { useAuth } from './context/AuthContext';
 import { LandingPage } from './pages/LandingPage';
 import { LoginPage } from './pages/auth/LoginPage';
 import { SignupPage } from './pages/auth/SignupPage';
@@ -27,13 +28,37 @@ import { DepartmentOverviewPage } from './pages/admin/DepartmentOverviewPage';
 import { NotificationsPage } from './pages/NotificationsPage';
 import { NotFoundPage } from './pages/NotFoundPage';
 
+const RootRoute: React.FC = () => {
+  const { isAuthenticated, role, isLoading } = useAuth();
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-[#080D1B] flex flex-col items-center justify-center p-6 text-center">
+        <div className="w-10 h-10 border-2 border-cyan-400 border-t-transparent rounded-full animate-spin mb-4" />
+        <p className="text-xs text-[#A7B4CC] tracking-wide uppercase font-semibold">
+          Verifying Session...
+        </p>
+      </div>
+    );
+  }
+
+  if (isAuthenticated && role) {
+    if (role === 'admin') return <Navigate to="/admin" replace />;
+    if (role === 'staff') return <Navigate to="/staff" replace />;
+    if (role === 'student') return <Navigate to="/student" replace />;
+  }
+
+  return <Navigate to="/login" replace />;
+};
+
 export const AppRouter: React.FC = () => {
   return (
     <Routes>
-      {/* Public Pages */}
-      <Route path="/" element={<LandingPage />} />
+      {/* Root Entry: Show login unless valid authenticated session exists */}
+      <Route path="/" element={<RootRoute />} />
       <Route path="/login" element={<LoginPage />} />
       <Route path="/signup" element={<SignupPage />} />
+      <Route path="/landing" element={<LandingPage />} />
 
       {/* Authenticated Application Shell */}
       <Route element={<AppShell />}>

@@ -1,6 +1,7 @@
 import React from 'react';
-import { NavLink, Link } from 'react-router-dom';
+import { NavLink, Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
+import { UserRole } from '../../types';
 import {
   LayoutDashboard,
   PlusCircle,
@@ -22,7 +23,8 @@ interface SidebarProps {
 }
 
 export const Sidebar: React.FC<SidebarProps> = ({ collapsed, onToggle }) => {
-  const { user, role, logout, isDemoMode } = useAuth();
+  const { user, role, logout } = useAuth();
+  const navigate = useNavigate();
 
   const getNavLinks = () => {
     if (role === 'admin') {
@@ -42,24 +44,26 @@ export const Sidebar: React.FC<SidebarProps> = ({ collapsed, onToggle }) => {
         { label: 'Notifications', to: '/notifications', icon: Bell },
       ];
     }
-    // Student default
-    return [
-      { label: 'Overview', to: '/student', icon: LayoutDashboard },
-      { label: 'File Complaint', to: '/student/submit', icon: PlusCircle },
-      { label: 'My Complaints', to: '/student/complaints', icon: FileText },
-      { label: 'Notifications', to: '/notifications', icon: Bell },
-    ];
+    if (role === 'student') {
+      return [
+        { label: 'Overview', to: '/student', icon: LayoutDashboard },
+        { label: 'File Complaint', to: '/student/submit', icon: PlusCircle },
+        { label: 'My Complaints', to: '/student/complaints', icon: FileText },
+        { label: 'Notifications', to: '/notifications', icon: Bell },
+      ];
+    }
+    return [];
   };
 
   const links = getNavLinks();
 
-  const roleColors: Record<string, { bg: string; text: string; label: string }> = {
+  const roleColors: Record<UserRole, { bg: string; text: string; label: string }> = {
     admin: { bg: 'bg-violet-500/15 border-violet-500/30', text: 'text-violet-300', label: 'Administrator' },
     staff: { bg: 'bg-cyan-500/15 border-cyan-500/30', text: 'text-cyan-300', label: 'Staff Member' },
     student: { bg: 'bg-emerald-500/15 border-emerald-500/30', text: 'text-emerald-300', label: 'Student' },
   };
 
-  const currentRoleCfg = role ? roleColors[role] : roleColors.student;
+  const currentRoleCfg = role && roleColors[role] ? roleColors[role] : null;
 
   return (
     <aside
@@ -95,7 +99,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ collapsed, onToggle }) => {
       </div>
 
       {/* Role Pill Banner */}
-      {!collapsed && (
+      {!collapsed && currentRoleCfg && (
         <div className="px-4 py-3 border-b border-white/5 bg-[#10182B]/60">
           <div className="flex items-center justify-between">
             <span
@@ -103,11 +107,6 @@ export const Sidebar: React.FC<SidebarProps> = ({ collapsed, onToggle }) => {
             >
               {currentRoleCfg.label}
             </span>
-            {isDemoMode && (
-              <span className="text-[10px] uppercase font-bold tracking-wider text-amber-400 px-1.5 py-0.2 bg-amber-400/10 rounded border border-amber-400/20">
-                Preview Mode
-              </span>
-            )}
           </div>
           {user?.department_name && (
             <p className="text-[11px] text-[#A7B4CC] mt-1.5 truncate">
@@ -163,7 +162,10 @@ export const Sidebar: React.FC<SidebarProps> = ({ collapsed, onToggle }) => {
           )}
 
           <button
-            onClick={logout}
+            onClick={() => {
+              logout();
+              navigate('/login', { replace: true });
+            }}
             className="text-[#A7B4CC] hover:text-rose-400 p-1.5 rounded-lg hover:bg-rose-500/10 transition-colors shrink-0"
             title="Sign out"
             aria-label="Sign out"

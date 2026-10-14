@@ -48,14 +48,14 @@ export const SignupPage: React.FC = () => {
 
     setIsLoading(true);
     try {
-      const profile = await signup({
+      await signup({
         full_name: fullName.trim(),
         email: email.trim(),
         password,
       });
 
-      success('Registration Successful', `Welcome to CampusResolve, ${profile.full_name}!`);
-      navigate('/student');
+      success('Registration Successful', 'Account created! Please sign in with your email and password.');
+      navigate('/login');
     } catch (err: any) {
       const msg = formatApiErrorMessage(err);
       setErrorMessage(msg);
@@ -132,7 +132,7 @@ export const SignupPage: React.FC = () => {
                       required
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
-                      placeholder="student@example.com"
+                      placeholder="name@university.edu"
                       className="w-full bg-[#151F35] border border-white/10 rounded-xl px-10 py-2.5 text-xs sm:text-sm text-[#F1F5F9] placeholder:text-[#A7B4CC]/40 focus:outline-hidden focus:border-cyan-400/60 focus:ring-1 focus:ring-cyan-400/30 transition-all"
                     />
                   </div>
