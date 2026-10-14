@@ -1,0 +1,42 @@
+@import "tailwindcss";
+
+@layer base {
+  :root {
+    --bg-main: #080D1B;
+    --bg-secondary: #10182B;
+    --bg-card: #151F35;
+    --bg-elevated: #1C2942;
+    --border-subtle: rgba(255, 255, 255, 0.08);
+    --border-accent: rgba(34, 211, 238, 0.25);
+  }
+
+  body {
+    background-color: var(--bg-main);
+    color: #F1F5F9;
+    font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* Monospace tabular numbers everywhere for metrics, timestamps, IDs */
+  .tabular-nums {
+    font-variant-numeric: tabular-nums;
+    font-family: 'JetBrains Mono', monospace;
+  }
+}
+
+/* Custom subtle scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: #080D1B;
+}
+::-webkit-scrollbar-thumb {
+  background: #1C2942;
+  border-radius: 9999px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #27385a;
+}
