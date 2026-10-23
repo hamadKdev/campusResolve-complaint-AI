@@ -25,7 +25,14 @@ import {
   Cpu,
   History,
   Send,
+  Layers,
+  CheckCircle2,
+  AlertTriangle,
+  Clock,
+  ArrowUpDown,
+  ExternalLink,
 } from 'lucide-react';
+import { motion, AnimatePresence } from 'motion/react';
 
 export const AdminComplaintsPage: React.FC = () => {
   const { success, error } = useToast();
@@ -79,24 +86,18 @@ export const AdminComplaintsPage: React.FC = () => {
     loadData();
   }, [loadData]);
 
-  // Open Assign Modal
-  const handleOpenAssignModal = (complaint: Complaint) => {
-    setAssigningComplaint(complaint);
-    setSelectedDeptId(complaint.department_id || (departments[0]?.id ?? ''));
-    setSelectedStaffId(complaint.assigned_to || '');
+  const handleOpenAssign = (item: Complaint) => {
+    setAssigningComplaint(item);
+    setSelectedDeptId(item.department_id || (departments[0]?.id ?? ''));
+    setSelectedStaffId(item.assigned_to || '');
   };
 
-  // Filter staff belonging to selected department
-  const eligibleStaff = users.filter((u) => {
-    if (u.role !== 'staff' && u.role !== 'admin') return false;
-    if (!selectedDeptId) return true;
-    return u.department_id === selectedDeptId || !u.department_id;
-  });
-
-  const handleConfirmAssignment = async (e: React.FormEvent) => {
+  const handleAssignSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!assigningComplaint || !selectedDeptId || !selectedStaffId) {
-      error('Missing Selection', 'Please select both a department and a staff assignee.');
+    if (!assigningComplaint) return;
+
+    if (!selectedDeptId || !selectedStaffId) {
+      error('Selection Required', 'Please choose both a target department and an assigned staff member.');
       return;
     }
 
@@ -108,7 +109,10 @@ export const AdminComplaintsPage: React.FC = () => {
         staff_id: selectedStaffId,
       });
 
-      success('Assignment Recorded', `Complaint assigned to staff member.`);
+      success(
+        'Assignment Dispatched',
+        `Complaint #${assigningComplaint.id.slice(0, 8)} successfully assigned.`
+      );
       setAssigningComplaint(null);
       loadData();
     } catch (err) {
@@ -122,10 +126,13 @@ export const AdminComplaintsPage: React.FC = () => {
     setRunningAgentCid(cid);
     try {
       const res = await agentService.runTriage(cid);
-      success('AI Triage Complete', 'Classification and urgency recommendations updated.');
+      success(
+        'AI Triage Completed',
+        `Confidence: ${Math.round((res.confidence || 0.9) * 100)}%. Suggested: ${res.category || 'Categorized'}.`
+      );
       loadData();
     } catch (err) {
-      error('Triage Notice', formatApiErrorMessage(err));
+      error('Triage Execution Failed', formatApiErrorMessage(err));
     } finally {
       setRunningAgentCid(null);
     }
@@ -135,25 +142,28 @@ export const AdminComplaintsPage: React.FC = () => {
     setRunningAgentCid(cid);
     try {
       const res = await agentService.runAssignmentAgent(cid);
-      success('AI Assignment Agent Run', 'Agent evaluated best matching department and technician.');
+      success(
+        'Autonomous Routing Finished',
+        `Agent evaluated incident and recommended assignment: ${res.recommended_staff_name || 'Staff'}`
+      );
       loadData();
     } catch (err) {
-      error('Assignment Agent Notice', formatApiErrorMessage(err));
+      error('Assignment Agent Failed', formatApiErrorMessage(err));
     } finally {
       setRunningAgentCid(null);
     }
   };
 
-  const handleConfirmCancel = async () => {
+  const handleCancelConfirm = async () => {
     if (!cancellingComplaint) return;
     setIsCancelling(true);
     try {
       await complaintService.cancelComplaint(cancellingComplaint.id);
-      success('Complaint Cancelled', `Complaint #${cancellingComplaint.id.slice(0, 8)} marked as cancelled.`);
+      success('Complaint Cancelled', `Case #${cancellingComplaint.id.slice(0, 8)} has been cancelled.`);
       setCancellingComplaint(null);
       loadData();
     } catch (err) {
-      error('Cancel Failed', formatApiErrorMessage(err));
+      error('Cancellation Failed', formatApiErrorMessage(err));
     } finally {
       setIsCancelling(false);
     }
@@ -164,42 +174,56 @@ export const AdminComplaintsPage: React.FC = () => {
     const q = searchQuery.toLowerCase();
     return (
       c.title.toLowerCase().includes(q) ||
-      c.category.toLowerCase().includes(q) ||
       c.location.toLowerCase().includes(q) ||
-      c.id.toLowerCase().includes(q)
+      c.category.toLowerCase().includes(q) ||
+      c.id.toLowerCase().includes(q) ||
+      (c.department_name && c.department_name.toLowerCase().includes(q))
     );
   });
 
+  const availableStaff = users.filter(
+    (u) => u.role === 'staff' && (!selectedDeptId || u.department_id === selectedDeptId)
+  );
+
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div>
-        <h1 className="text-xl sm:text-2xl font-bold text-[#F1F5F9] tracking-tight">
-          Campus Complaints Management
-        </h1>
-        <p className="text-xs sm:text-sm text-[#A7B4CC] mt-0.5">
-          Review student grievances, trigger autonomous AI triage, and dispatch work to department technicians.
-        </p>
+      {/* Top Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <span className="text-[11px] font-bold uppercase tracking-wider text-cyan-400">
+            Operations Management
+          </span>
+          <h1 className="text-2xl font-bold text-white tracking-tight mt-1">
+            Grievances & Dispatch Console
+          </h1>
+          <p className="text-xs text-slate-400 mt-0.5">
+            Filter, inspect autonomous AI triage, and route student grievances to department field staff.
+          </p>
+        </div>
+
+        <div className="flex items-center gap-2">
+          <span className="text-xs font-mono text-cyan-300 bg-cyan-500/10 border border-cyan-500/25 px-3 py-1.5 rounded-xl">
+            {filteredComplaints.length} Total Cases
+          </span>
+        </div>
       </div>
 
-      {/* Filter and Search Bar */}
-      <div className="p-4 rounded-2xl bg-[#10182B] border border-white/5 space-y-4">
-        <div className="relative">
-          <Search className="w-4 h-4 text-[#A7B4CC] absolute left-3.5 top-1/2 -translate-y-1/2" />
+      {/* Search Bar & Filter Controls */}
+      <div className="dash-card dash-card-glow p-5 flex flex-col md:flex-row md:items-center justify-between gap-4">
+        {/* Search Input */}
+        <div className="relative flex-1 max-w-md">
+          <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
           <input
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Search all complaints by title, category, location, or UUID..."
-            className="w-full bg-[#151F35] border border-white/10 rounded-xl pl-10 pr-4 py-2 text-xs sm:text-sm text-[#F1F5F9] placeholder:text-[#A7B4CC]/40 focus:outline-hidden focus:border-cyan-400/60 transition-all"
+            placeholder="Search tickets by title, location, ID, or category..."
+            className="w-full bg-[#0c142b] border border-white/10 rounded-xl pl-10 pr-4 py-2.5 text-xs text-white placeholder:text-slate-400 focus:outline-hidden focus:border-cyan-400/60 focus:ring-1 focus:ring-cyan-400/30 transition-all shadow-inner"
           />
         </div>
 
-        <div className="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-none">
-          <span className="text-xs text-[#A7B4CC] mr-2 shrink-0 flex items-center gap-1">
-            <Filter className="w-3.5 h-3.5" />
-            <span>Status:</span>
-          </span>
+        {/* Status Segmented Buttons */}
+        <div className="flex items-center gap-1.5 overflow-x-auto pb-1 md:pb-0 scrollbar-none">
           {[
             { label: 'All Cases', value: 'all' },
             { label: 'Submitted', value: 'submitted' },
@@ -212,10 +236,10 @@ export const AdminComplaintsPage: React.FC = () => {
             <button
               key={f.value}
               onClick={() => setStatusFilter(f.value)}
-              className={`px-3 py-1.5 rounded-lg text-xs font-medium whitespace-nowrap transition-colors ${
+              className={`px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap transition-all ${
                 statusFilter === f.value
-                  ? 'bg-cyan-500/20 text-cyan-300 border border-cyan-500/30'
-                  : 'text-[#A7B4CC] hover:text-[#F1F5F9] hover:bg-white/5'
+                  ? 'bg-gradient-to-r from-cyan-500/20 to-blue-500/20 text-cyan-300 border border-cyan-500/40 shadow-sm'
+                  : 'text-slate-400 hover:text-white hover:bg-white/[0.05]'
               }`}
             >
               {f.label}
@@ -224,16 +248,16 @@ export const AdminComplaintsPage: React.FC = () => {
         </div>
       </div>
 
-      {/* Main Directory Table */}
-      <div className="rounded-2xl bg-[#10182B] border border-white/5 p-6">
+      {/* Main Table Card */}
+      <div className="dash-card dash-card-glow p-6">
         {errorMsg && <ErrorBanner message={errorMsg} onRetry={loadData} />}
 
         {isLoading ? (
-          <LoadingSkeleton rows={6} />
+          <LoadingSkeleton rows={7} />
         ) : filteredComplaints.length === 0 ? (
           <EmptyState
-            title="No complaints found"
-            description="No tickets match the search query or status criteria."
+            title="No grievances found"
+            description="No tickets match the active search query or status criteria."
             action={{
               label: 'Reset Filters',
               onClick: () => {
@@ -244,53 +268,55 @@ export const AdminComplaintsPage: React.FC = () => {
           />
         ) : (
           <div className="overflow-x-auto">
-            <table className="w-full text-left border-collapse">
+            <table className="w-full text-left text-xs">
               <thead>
-                <tr className="border-b border-white/5 text-[11px] font-semibold text-[#A7B4CC] uppercase tracking-wider">
-                  <th className="py-3 px-4">Ticket / Title</th>
-                  <th className="py-3 px-4">Location</th>
-                  <th className="py-3 px-4">Priority</th>
-                  <th className="py-3 px-4">Status</th>
-                  <th className="py-3 px-4">Assigned Dept / Staff</th>
-                  <th className="py-3 px-4">Date</th>
-                  <th className="py-3 px-4 text-right">Actions</th>
+                <tr className="border-b border-white/[0.06] text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+                  <th className="pb-3 pr-4">Ticket</th>
+                  <th className="pb-3 px-4">Title & Location</th>
+                  <th className="pb-3 px-4">Category</th>
+                  <th className="pb-3 px-4">Priority</th>
+                  <th className="pb-3 px-4">Status</th>
+                  <th className="pb-3 px-4">Assigned Department / Staff</th>
+                  <th className="pb-3 px-4">Date</th>
+                  <th className="pb-3 pl-4 text-right">Actions</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-white/5 text-xs text-[#F1F5F9]">
+              <tbody className="divide-y divide-white/[0.04]">
                 {filteredComplaints.map((item) => (
-                  <tr key={item.id} className="hover:bg-white/[0.02] transition-colors">
-                    <td className="py-3 px-4">
-                      <div className="font-semibold text-slate-100 max-w-xs truncate">{item.title}</div>
-                      <div className="text-[11px] text-[#A7B4CC] font-mono mt-0.5">
-                        #{item.id.slice(0, 8)}
-                      </div>
+                  <tr key={item.id} className="hover:bg-white/[0.02] transition-colors group">
+                    <td className="py-3.5 pr-4 font-mono font-medium text-cyan-400">
+                      #{item.id.slice(0, 8)}
                     </td>
-                    <td className="py-3 px-4 text-[#A7B4CC] max-w-xs truncate">{item.location}</td>
-                    <td className="py-3 px-4">
+                    <td className="py-3.5 px-4 max-w-xs">
+                      <div className="font-semibold text-white truncate">{item.title}</div>
+                      <div className="text-[11px] text-slate-400 truncate mt-0.5">{item.location}</div>
+                    </td>
+                    <td className="py-3.5 px-4 text-slate-300">{item.category}</td>
+                    <td className="py-3.5 px-4">
                       <PriorityBadge priority={item.priority} />
                     </td>
-                    <td className="py-3 px-4">
-                      <StatusBadge status={item.status} />
+                    <td className="py-3.5 px-4">
+                      <StatusBadge status={item.status} size="sm" />
                     </td>
-                    <td className="py-3 px-4 text-[#A7B4CC]">
+                    <td className="py-3.5 px-4 text-slate-300">
                       {item.department_name ? (
-                        <div className="font-medium text-[#F1F5F9]">{item.department_name}</div>
+                        <div className="font-medium text-white">{item.department_name}</div>
                       ) : (
-                        <span className="text-amber-400/90 italic">Unassigned</span>
+                        <span className="text-amber-400 italic">Unassigned</span>
                       )}
                       {item.assigned_staff_name && (
-                        <div className="text-[10px] text-[#A7B4CC]">Staff: {item.assigned_staff_name}</div>
+                        <div className="text-[10px] text-slate-400">Tech: {item.assigned_staff_name}</div>
                       )}
                     </td>
-                    <td className="py-3 px-4 text-[#A7B4CC] tabular-nums whitespace-nowrap">
+                    <td className="py-3.5 px-4 text-slate-400 tabular-nums whitespace-nowrap">
                       {new Date(item.created_at).toLocaleDateString()}
                     </td>
-                    <td className="py-3 px-4 text-right">
+                    <td className="py-3.5 pl-4 text-right">
                       <div className="inline-flex items-center gap-1.5 justify-end">
                         <button
                           onClick={() => setInspectingComplaint(item)}
-                          className="p-1.5 rounded-lg bg-[#151F35] hover:bg-[#1C2942] text-[#A7B4CC] hover:text-[#F1F5F9] transition-colors border border-white/5"
-                          title="Inspect details and updates"
+                          className="p-1.5 rounded-lg bg-[#14203e] hover:bg-[#1b2b52] text-slate-300 hover:text-white transition-colors border border-white/5"
+                          title="Inspect case details"
                         >
                           <Eye className="w-3.5 h-3.5" />
                         </button>
@@ -298,28 +324,33 @@ export const AdminComplaintsPage: React.FC = () => {
                         <button
                           onClick={() => handleRunTriage(item.id)}
                           disabled={runningAgentCid === item.id}
-                          className="p-1.5 rounded-lg bg-violet-500/10 hover:bg-violet-500/20 text-violet-300 transition-colors border border-violet-500/20 disabled:opacity-50"
-                          title="Run Agentic AI Triage"
+                          className="p-1.5 rounded-lg bg-[#14203e] hover:bg-[#1b2b52] text-cyan-300 hover:text-cyan-200 transition-colors border border-cyan-500/20 disabled:opacity-50"
+                          title="Trigger AI Triage Analysis"
                         >
-                          <Sparkles className="w-3.5 h-3.5" />
+                          {runningAgentCid === item.id ? (
+                            <span className="w-3.5 h-3.5 border-2 border-cyan-400 border-t-transparent rounded-full animate-spin inline-block" />
+                          ) : (
+                            <Sparkles className="w-3.5 h-3.5" />
+                          )}
                         </button>
 
                         <button
-                          onClick={() => handleOpenAssignModal(item)}
-                          className="px-2.5 py-1.5 rounded-lg bg-[#22D3EE] hover:bg-[#67e8f9] text-[#080D1B] font-semibold text-xs transition-colors inline-flex items-center gap-1"
-                          title="Assign to department"
+                          onClick={() => handleOpenAssign(item)}
+                          className="px-2.5 py-1.5 rounded-lg bg-[#18264d] hover:bg-[#203264] border border-cyan-500/30 text-cyan-300 font-medium text-xs transition-colors inline-flex items-center gap-1"
                         >
-                          <UserCheck className="w-3.5 h-3.5" />
+                          <UserCheck className="w-3 h-3" />
                           <span>Assign</span>
                         </button>
 
-                        <button
-                          onClick={() => setCancellingComplaint(item)}
-                          className="p-1.5 rounded-lg bg-rose-500/10 hover:bg-rose-500/20 text-rose-300 transition-colors border border-rose-500/20"
-                          title="Cancel complaint"
-                        >
-                          <Trash2 className="w-3.5 h-3.5" />
-                        </button>
+                        {item.status !== 'cancelled' && item.status !== 'resolved' && (
+                          <button
+                            onClick={() => setCancellingComplaint(item)}
+                            className="p-1.5 rounded-lg bg-rose-500/10 hover:bg-rose-500/20 text-rose-300 hover:text-rose-200 transition-colors border border-rose-500/20"
+                            title="Cancel grievance"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        )}
                       </div>
                     </td>
                   </tr>
@@ -330,171 +361,211 @@ export const AdminComplaintsPage: React.FC = () => {
         )}
       </div>
 
-      {/* Assignment Modal (POST /assignments) */}
-      {assigningComplaint && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-xs">
-          <div className="w-full max-w-md rounded-2xl bg-[#151F35] border border-white/10 p-6 shadow-2xl relative animate-in fade-in zoom-in-95 duration-150">
-            <button
-              onClick={() => setAssigningComplaint(null)}
-              className="absolute top-4 right-4 text-slate-400 hover:text-white"
+      {/* Assignment Modal */}
+      <AnimatePresence>
+        {assigningComplaint && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 15 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 15 }}
+              className="dash-card dash-card-glow max-w-lg w-full p-6 sm:p-7 space-y-5"
             >
-              <X className="w-5 h-5" />
-            </button>
-
-            <div className="flex items-center gap-2 mb-1">
-              <UserCheck className="w-4 h-4 text-cyan-400" />
-              <h3 className="text-base font-semibold text-[#F1F5F9]">Assign Complaint to Department</h3>
-            </div>
-            <p className="text-xs text-[#A7B4CC] mb-4 truncate">
-              {assigningComplaint.title} (#{assigningComplaint.id.slice(0, 8)})
-            </p>
-
-            <form onSubmit={handleConfirmAssignment} className="space-y-4">
-              {/* Department selector */}
-              <div>
-                <label className="block text-xs font-medium text-[#A7B4CC] mb-1.5">
-                  Target Department
-                </label>
-                <select
-                  required
-                  value={selectedDeptId}
-                  onChange={(e) => {
-                    setSelectedDeptId(e.target.value);
-                    setSelectedStaffId('');
-                  }}
-                  className="w-full bg-[#10182B] border border-white/10 rounded-xl px-3 py-2 text-xs sm:text-sm text-[#F1F5F9] focus:outline-hidden focus:border-cyan-400"
-                >
-                  <option value="" disabled>Select department</option>
-                  {departments.map((d) => (
-                    <option key={d.id} value={d.id}>
-                      {d.name} {d.code ? `(${d.code})` : ''}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              {/* Staff assignee selector */}
-              <div>
-                <label className="block text-xs font-medium text-[#A7B4CC] mb-1.5">
-                  Assigned Staff Member
-                </label>
-                <select
-                  required
-                  value={selectedStaffId}
-                  onChange={(e) => setSelectedStaffId(e.target.value)}
-                  className="w-full bg-[#10182B] border border-white/10 rounded-xl px-3 py-2 text-xs sm:text-sm text-[#F1F5F9] focus:outline-hidden focus:border-cyan-400"
-                >
-                  <option value="" disabled>Select department staff</option>
-                  {eligibleStaff.map((u) => (
-                    <option key={u.id} value={u.id}>
-                      {u.full_name} ({u.email})
-                    </option>
-                  ))}
-                  {eligibleStaff.length === 0 && (
-                    <option value="" disabled>No staff registered in this department</option>
-                  )}
-                </select>
-              </div>
-
-              <div className="flex items-center justify-end gap-3 pt-4 border-t border-white/5">
+              <div className="flex items-center justify-between pb-3 border-b border-white/[0.06]">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-8 h-8 rounded-lg bg-cyan-500/20 text-cyan-300 border border-cyan-500/30 flex items-center justify-center">
+                    <UserCheck className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <h3 className="text-sm font-bold text-white">Assign Complaint Dispatch</h3>
+                    <p className="text-[11px] text-slate-400 font-mono">#{assigningComplaint.id.slice(0, 8)}</p>
+                  </div>
+                </div>
                 <button
-                  type="button"
                   onClick={() => setAssigningComplaint(null)}
-                  className="px-3 py-2 text-xs font-medium text-[#A7B4CC] hover:text-[#F1F5F9]"
+                  className="text-slate-400 hover:text-white p-1 rounded-lg hover:bg-white/5"
                 >
-                  Cancel
+                  <X className="w-4 h-4" />
                 </button>
-                <button
-                  type="submit"
-                  disabled={isAssigning || !selectedDeptId || !selectedStaffId}
-                  className="px-4 py-2 text-xs font-semibold rounded-lg bg-[#22D3EE] hover:bg-[#67e8f9] text-[#080D1B] disabled:opacity-50 inline-flex items-center gap-1.5"
-                >
-                  {isAssigning && (
-                    <span className="w-3.5 h-3.5 border-2 border-current border-t-transparent rounded-full animate-spin" />
+              </div>
+
+              <div className="p-3.5 rounded-xl bg-[#0c142b] border border-white/5 space-y-1">
+                <p className="text-xs font-semibold text-white truncate">{assigningComplaint.title}</p>
+                <p className="text-[11px] text-slate-400 truncate">{assigningComplaint.location}</p>
+              </div>
+
+              <form onSubmit={handleAssignSubmit} className="space-y-4">
+                <div>
+                  <label className="block text-xs font-medium text-slate-300 mb-1.5">
+                    Target Department
+                  </label>
+                  <select
+                    value={selectedDeptId}
+                    onChange={(e) => {
+                      setSelectedDeptId(e.target.value);
+                      setSelectedStaffId('');
+                    }}
+                    required
+                    className="w-full bg-[#0c142b] border border-white/10 rounded-xl px-3 py-2.5 text-xs text-white focus:outline-hidden focus:border-cyan-400/60 transition-all"
+                  >
+                    <option value="" disabled>Select department</option>
+                    {departments.map((d) => (
+                      <option key={d.id} value={d.id} className="bg-[#0b1328]">
+                        {d.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-medium text-slate-300 mb-1.5">
+                    Assigned Technician / Staff
+                  </label>
+                  <select
+                    value={selectedStaffId}
+                    onChange={(e) => setSelectedStaffId(e.target.value)}
+                    required
+                    className="w-full bg-[#0c142b] border border-white/10 rounded-xl px-3 py-2.5 text-xs text-white focus:outline-hidden focus:border-cyan-400/60 transition-all"
+                  >
+                    <option value="" disabled>Select department staff member</option>
+                    {availableStaff.map((s) => (
+                      <option key={s.id} value={s.id} className="bg-[#0b1328]">
+                        {s.full_name} ({s.email})
+                      </option>
+                    ))}
+                  </select>
+                  {availableStaff.length === 0 && (
+                    <p className="text-[11px] text-amber-400 mt-1">
+                      No staff members assigned to this department yet. You can assign staff in User Directory.
+                    </p>
                   )}
-                  <span>Confirm Assignment</span>
+                </div>
+
+                <div className="pt-2 flex items-center justify-end gap-3 border-t border-white/[0.06]">
+                  <button
+                    type="button"
+                    onClick={() => setAssigningComplaint(null)}
+                    className="px-4 py-2 text-xs font-medium text-slate-300 hover:text-white transition-colors"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={isAssigning || availableStaff.length === 0}
+                    className="px-4 py-2.5 rounded-xl bg-cyan-400 hover:bg-cyan-300 text-[#090e21] font-semibold text-xs transition-colors shadow-md shadow-cyan-500/20 disabled:opacity-50"
+                  >
+                    {isAssigning ? 'Dispatching...' : 'Confirm Assignment'}
+                  </button>
+                </div>
+              </form>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* Detail Slide-over Drawer */}
+      <AnimatePresence>
+        {inspectingComplaint && (
+          <div className="fixed inset-0 z-50 flex justify-end bg-black/70 backdrop-blur-xs">
+            <motion.div
+              initial={{ x: '100%' }}
+              animate={{ x: 0 }}
+              exit={{ x: '100%' }}
+              transition={{ type: 'spring', damping: 25, stiffness: 200 }}
+              className="w-full max-w-lg bg-[#0c142b] border-l border-white/10 h-full overflow-y-auto p-6 sm:p-7 space-y-6 shadow-2xl flex flex-col justify-between"
+            >
+              <div className="space-y-6">
+                <div className="flex items-center justify-between pb-3 border-b border-white/[0.06]">
+                  <div className="flex items-center gap-2 font-mono text-xs text-cyan-400 font-semibold">
+                    <span>CASE TICKET #{inspectingComplaint.id.slice(0, 8)}</span>
+                  </div>
+                  <button
+                    onClick={() => setInspectingComplaint(null)}
+                    className="p-1 text-slate-400 hover:text-white rounded-lg hover:bg-white/5"
+                  >
+                    <X className="w-5 h-5" />
+                  </button>
+                </div>
+
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2">
+                    <StatusBadge status={inspectingComplaint.status} />
+                    <PriorityBadge priority={inspectingComplaint.priority} />
+                  </div>
+                  <h2 className="text-lg font-bold text-white leading-snug">
+                    {inspectingComplaint.title}
+                  </h2>
+                  <p className="text-xs text-slate-300 leading-relaxed bg-[#121d3a] p-3.5 rounded-xl border border-white/5 whitespace-pre-wrap">
+                    {inspectingComplaint.description}
+                  </p>
+                </div>
+
+                <div className="grid grid-cols-2 gap-3 text-xs">
+                  <div className="p-3 rounded-xl bg-[#121d3a] border border-white/5">
+                    <span className="text-[10px] text-slate-400 uppercase font-bold tracking-wider">Location</span>
+                    <p className="text-white font-medium mt-1 truncate">{inspectingComplaint.location}</p>
+                  </div>
+                  <div className="p-3 rounded-xl bg-[#121d3a] border border-white/5">
+                    <span className="text-[10px] text-slate-400 uppercase font-bold tracking-wider">Category</span>
+                    <p className="text-white font-medium mt-1 truncate">{inspectingComplaint.category}</p>
+                  </div>
+                  <div className="p-3 rounded-xl bg-[#121d3a] border border-white/5">
+                    <span className="text-[10px] text-slate-400 uppercase font-bold tracking-wider">Assigned Dept</span>
+                    <p className="text-cyan-300 font-medium mt-1 truncate">
+                      {inspectingComplaint.department_name || 'Unassigned'}
+                    </p>
+                  </div>
+                  <div className="p-3 rounded-xl bg-[#121d3a] border border-white/5">
+                    <span className="text-[10px] text-slate-400 uppercase font-bold tracking-wider">Submitted On</span>
+                    <p className="text-white font-medium mt-1 tabular-nums">
+                      {new Date(inspectingComplaint.created_at).toLocaleDateString()}
+                    </p>
+                  </div>
+                </div>
+
+                {inspectingComplaint.triage && (
+                  <div className="p-4 rounded-xl bg-cyan-950/30 border border-cyan-500/30 space-y-2">
+                    <div className="flex items-center gap-2 text-cyan-400 text-xs font-bold">
+                      <Sparkles className="w-4 h-4" />
+                      <span>Autonomous AI Triage Assessment</span>
+                    </div>
+                    {inspectingComplaint.triage.summary && (
+                      <p className="text-xs text-slate-300">{inspectingComplaint.triage.summary}</p>
+                    )}
+                    {inspectingComplaint.triage.urgency_reason && (
+                      <p className="text-[11px] text-cyan-200/80 italic">
+                        “{inspectingComplaint.triage.urgency_reason}”
+                      </p>
+                    )}
+                  </div>
+                )}
+              </div>
+
+              <div className="pt-4 border-t border-white/[0.06] flex items-center justify-end gap-3">
+                <button
+                  onClick={() => {
+                    const c = inspectingComplaint;
+                    setInspectingComplaint(null);
+                    handleOpenAssign(c);
+                  }}
+                  className="w-full py-2.5 rounded-xl bg-cyan-400 hover:bg-cyan-300 text-[#090e21] font-semibold text-xs transition-colors shadow-md"
+                >
+                  Dispatch to Staff Member
                 </button>
               </div>
-            </form>
+            </motion.div>
           </div>
-        </div>
-      )}
-
-      {/* Inspect Detail Drawer */}
-      {inspectingComplaint && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-xs">
-          <div className="w-full max-w-lg rounded-2xl bg-[#151F35] border border-white/10 p-6 shadow-2xl relative max-h-[85vh] flex flex-col">
-            <button
-              onClick={() => setInspectingComplaint(null)}
-              className="absolute top-4 right-4 text-slate-400 hover:text-white"
-            >
-              <X className="w-5 h-5" />
-            </button>
-
-            <div className="flex items-center gap-2 mb-1">
-              <span className="text-xs font-mono text-cyan-400">
-                #{inspectingComplaint.id}
-              </span>
-              <StatusBadge status={inspectingComplaint.status} />
-              <PriorityBadge priority={inspectingComplaint.priority} />
-            </div>
-
-            <h3 className="text-base font-bold text-[#F1F5F9] mb-2">
-              {inspectingComplaint.title}
-            </h3>
-
-            <p className="text-xs text-[#A7B4CC] leading-relaxed mb-4 whitespace-pre-wrap">
-              {inspectingComplaint.description}
-            </p>
-
-            <div className="p-3.5 rounded-xl bg-[#10182B] border border-white/5 space-y-2 text-xs mb-4">
-              <div className="flex justify-between">
-                <span className="text-[#A7B4CC]">Location:</span>
-                <span className="text-[#F1F5F9]">{inspectingComplaint.location}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-[#A7B4CC]">Category:</span>
-                <span className="text-[#F1F5F9]">{inspectingComplaint.category}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-[#A7B4CC]">Department:</span>
-                <span className="text-[#F1F5F9]">
-                  {inspectingComplaint.department_name || 'Not assigned'}
-                </span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-[#A7B4CC]">Assigned Staff:</span>
-                <span className="text-[#F1F5F9]">
-                  {inspectingComplaint.assigned_staff_name || 'None'}
-                </span>
-              </div>
-            </div>
-
-            <div className="flex items-center justify-end gap-2 pt-2 border-t border-white/5">
-              <button
-                onClick={() => {
-                  const comp = inspectingComplaint;
-                  setInspectingComplaint(null);
-                  handleOpenAssignModal(comp);
-                }}
-                className="px-3 py-1.5 rounded-lg bg-[#22D3EE] text-[#080D1B] font-semibold text-xs"
-              >
-                Assign Ticket
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+        )}
+      </AnimatePresence>
 
       {/* Cancellation Modal */}
       <ConfirmModal
         isOpen={!!cancellingComplaint}
-        title="Cancel Campus Complaint?"
-        message={`Are you sure you want to cancel "${cancellingComplaint?.title}"?`}
-        confirmLabel="Cancel Complaint"
-        isDestructive={true}
-        isLoading={isCancelling}
-        onConfirm={handleConfirmCancel}
+        title="Cancel Grievance Case"
+        message={`Are you sure you want to cancel complaint #${cancellingComplaint?.id.slice(0, 8)}? This action marks the grievance as cancelled.`}
+        confirmLabel={isCancelling ? 'Cancelling...' : 'Confirm Cancellation'}
+        isDestructive
+        onConfirm={handleCancelConfirm}
         onCancel={() => setCancellingComplaint(null)}
       />
     </div>

@@ -18,16 +18,16 @@ export const EmptyState: React.FC<EmptyStateProps> = ({
   action,
 }) => {
   return (
-    <div className="flex flex-col items-center justify-center p-12 text-center rounded-xl bg-[#151F35]/60 border border-white/5 my-4">
-      <div className="w-12 h-12 rounded-xl bg-[#1C2942] flex items-center justify-center text-[#A7B4CC] mb-4 border border-white/5">
+    <div className="flex flex-col items-center justify-center p-12 text-center rounded-2xl bg-[#0a1024]/60 border border-white/10 my-4">
+      <div className="w-12 h-12 rounded-2xl bg-[#182444] flex items-center justify-center text-cyan-300 mb-4 border border-cyan-500/20 shadow-sm shadow-cyan-500/10">
         <Icon className="w-6 h-6" />
       </div>
-      <h3 className="text-base font-semibold text-[#F1F5F9]">{title}</h3>
-      <p className="mt-1 text-sm text-[#A7B4CC] max-w-sm leading-relaxed">{description}</p>
+      <h3 className="text-base font-bold text-white">{title}</h3>
+      <p className="mt-1 text-xs sm:text-sm text-[#8c9fc2] max-w-sm leading-relaxed">{description}</p>
       {action && (
         <button
           onClick={action.onClick}
-          className="mt-5 px-4 py-2 text-xs font-medium text-[#080D1B] bg-[#22D3EE] rounded-lg hover:bg-[#67e8f9] transition-colors whitespace-nowrap"
+          className="mt-5 px-4 py-2 text-xs font-bold text-[#090e21] bg-gradient-to-r from-cyan-400 to-blue-500 rounded-xl hover:from-cyan-300 hover:to-blue-400 transition-all whitespace-nowrap shadow-md shadow-cyan-500/20 active:scale-95"
         >
           {action.label}
         </button>

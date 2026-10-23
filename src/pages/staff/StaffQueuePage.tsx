@@ -17,7 +17,12 @@ import {
   MessageSquare,
   X,
   History,
+  CheckSquare,
+  Wrench,
+  AlertCircle,
+  ChevronRight,
 } from 'lucide-react';
+import { motion, AnimatePresence } from 'motion/react';
 
 const STATUS_OPTIONS: { label: string; value: string }[] = [
   { label: 'All Cases', value: 'all' },
@@ -40,7 +45,8 @@ export const StaffQueuePage: React.FC = () => {
   // Status & Progress Update Modal
   const [selectedComplaint, setSelectedComplaint] = useState<Complaint | null>(null);
   const [newStatus, setNewStatus] = useState<string>('in_progress');
-  const [statusMessage, setStatusMessage] = useState<string>('');
+  const [progressNote, setProgressNote] = useState<string>('');
+  const [resolutionDetails, setResolutionDetails] = useState<string>('');
   const [isUpdating, setIsUpdating] = useState(false);
 
   // Updates history modal
@@ -67,45 +73,59 @@ export const StaffQueuePage: React.FC = () => {
     loadComplaints();
   }, [loadComplaints]);
 
-  const handleOpenUpdateModal = (c: Complaint) => {
-    setSelectedComplaint(c);
-    setNewStatus(c.status === 'assigned' ? 'in_progress' : c.status);
-    setStatusMessage('');
+  const handleOpenUpdate = (complaint: Complaint) => {
+    setSelectedComplaint(complaint);
+    setNewStatus(complaint.status);
+    setProgressNote('');
+    setResolutionDetails('');
   };
 
-  const handleSubmitStatusUpdate = async (e: React.FormEvent) => {
+  const handleStatusSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedComplaint) return;
+
     setIsUpdating(true);
     try {
-      // Calls confirmed PATCH /complaints/{cid}/status endpoint
+      const combinedMessage = [
+        progressNote.trim() ? `Progress Note: ${progressNote.trim()}` : '',
+        resolutionDetails.trim() ? `Resolution Details: ${resolutionDetails.trim()}` : '',
+      ]
+        .filter(Boolean)
+        .join('\n\n');
+
       await complaintService.updateStatus(selectedComplaint.id, {
         status: newStatus,
-        message: statusMessage.trim(),
+        message: combinedMessage || `Status changed to ${newStatus}`,
       });
 
+      if (combinedMessage) {
+        await complaintService.addUpdate(selectedComplaint.id, {
+          status: newStatus,
+          message: combinedMessage,
+        }).catch(() => {});
+      }
+
       success(
-        'Work Progress Logged',
-        `Complaint #${selectedComplaint.id.slice(0, 8)} status set to ${newStatus.replace(/_/g, ' ')}.`
+        'Work Status Updated',
+        `Case #${selectedComplaint.id.slice(0, 8)} set to "${newStatus.replace(/_/g, ' ')}".`
       );
       setSelectedComplaint(null);
       loadComplaints();
     } catch (err) {
-      error('Failed to Update Status', formatApiErrorMessage(err));
+      error('Update Failed', formatApiErrorMessage(err));
     } finally {
       setIsUpdating(false);
     }
   };
 
-  const handleViewHistory = async (c: Complaint) => {
-    setHistoryComplaint(c);
+  const handleOpenHistory = async (complaint: Complaint) => {
+    setHistoryComplaint(complaint);
     setIsLoadingHistory(true);
     try {
-      const data = await complaintService.getUpdates(c.id);
-      setHistoryUpdates(data);
+      const updates = await complaintService.getUpdates(complaint.id);
+      setHistoryUpdates(updates);
     } catch (err) {
-      error('Unable to fetch history', formatApiErrorMessage(err));
-      setHistoryUpdates([]);
+      error('Failed to load logs', formatApiErrorMessage(err));
     } finally {
       setIsLoadingHistory(false);
     }
@@ -116,8 +136,8 @@ export const StaffQueuePage: React.FC = () => {
     const q = searchQuery.toLowerCase();
     return (
       c.title.toLowerCase().includes(q) ||
-      c.category.toLowerCase().includes(q) ||
       c.location.toLowerCase().includes(q) ||
+      c.category.toLowerCase().includes(q) ||
       c.id.toLowerCase().includes(q)
     );
   });
@@ -125,41 +145,46 @@ export const StaffQueuePage: React.FC = () => {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div>
-        <h1 className="text-xl sm:text-2xl font-bold text-[#F1F5F9] tracking-tight">
-          Department Work Queue
-        </h1>
-        <p className="text-xs sm:text-sm text-[#A7B4CC] mt-0.5">
-          Review complaints assigned to your department, record field diagnostics, and submit resolution notices.
-        </p>
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <span className="text-[11px] font-bold uppercase tracking-wider text-cyan-400">
+            Field Technician Workspace
+          </span>
+          <h1 className="text-2xl font-bold text-white tracking-tight mt-1">
+            Department Work Queue
+          </h1>
+          <p className="text-xs text-slate-400 mt-0.5">
+            Execute repairs, record official progress notes, and publish confirmed resolution details.
+          </p>
+        </div>
+
+        <div className="text-xs font-mono text-cyan-300 bg-cyan-500/10 border border-cyan-500/25 px-3 py-1.5 rounded-xl">
+          {filteredComplaints.length} Assigned Cases
+        </div>
       </div>
 
-      {/* Filter and Search Bar */}
-      <div className="p-4 rounded-2xl bg-[#10182B] border border-white/5 space-y-4">
-        <div className="relative">
-          <Search className="w-4 h-4 text-[#A7B4CC] absolute left-3.5 top-1/2 -translate-y-1/2" />
+      {/* Search and Filters */}
+      <div className="dash-card dash-card-glow p-5 flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div className="relative flex-1 max-w-md">
+          <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
           <input
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Search work queue by title, category, location, or ticket ID..."
-            className="w-full bg-[#151F35] border border-white/10 rounded-xl pl-10 pr-4 py-2 text-xs sm:text-sm text-[#F1F5F9] placeholder:text-[#A7B4CC]/40 focus:outline-hidden focus:border-cyan-400/60 transition-all"
+            placeholder="Search work queue by title, location, or ticket ID..."
+            className="w-full bg-[#0c142b] border border-white/10 rounded-xl pl-10 pr-4 py-2.5 text-xs text-white placeholder:text-slate-400 focus:outline-hidden focus:border-cyan-400/60 transition-all shadow-inner"
           />
         </div>
 
-        <div className="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-none">
-          <span className="text-xs text-[#A7B4CC] mr-2 shrink-0 flex items-center gap-1">
-            <Filter className="w-3.5 h-3.5" />
-            <span>Filter Status:</span>
-          </span>
+        <div className="flex items-center gap-1.5 overflow-x-auto pb-1 md:pb-0 scrollbar-none">
           {STATUS_OPTIONS.map((f) => (
             <button
               key={f.value}
               onClick={() => setActiveFilter(f.value)}
-              className={`px-3 py-1.5 rounded-lg text-xs font-medium whitespace-nowrap transition-colors ${
+              className={`px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap transition-all ${
                 activeFilter === f.value
-                  ? 'bg-cyan-500/20 text-cyan-300 border border-cyan-500/30'
-                  : 'text-[#A7B4CC] hover:text-[#F1F5F9] hover:bg-white/5'
+                  ? 'bg-gradient-to-r from-cyan-500/20 to-blue-500/20 text-cyan-300 border border-cyan-500/40 shadow-sm'
+                  : 'text-slate-400 hover:text-white hover:bg-white/[0.05]'
               }`}
             >
               {f.label}
@@ -168,73 +193,76 @@ export const StaffQueuePage: React.FC = () => {
         </div>
       </div>
 
-      {/* Main Table Content */}
-      <div className="rounded-2xl bg-[#10182B] border border-white/5 p-6">
+      {/* Main Table Card */}
+      <div className="dash-card dash-card-glow p-6">
         {errorMsg && <ErrorBanner message={errorMsg} onRetry={loadComplaints} />}
 
         {isLoading ? (
-          <LoadingSkeleton rows={5} />
+          <LoadingSkeleton rows={6} />
         ) : filteredComplaints.length === 0 ? (
           <EmptyState
-            title="No complaints in queue"
-            description="There are currently no tickets matching the selected status and search criteria."
+            title="Work Queue Clear"
+            description="No assigned complaints require diagnostic updates under this status."
             action={{
               label: 'Reset Filters',
               onClick: () => {
-                setSearchQuery('');
                 setActiveFilter('all');
+                setSearchQuery('');
               },
             }}
           />
         ) : (
           <div className="overflow-x-auto">
-            <table className="w-full text-left border-collapse">
+            <table className="w-full text-left text-xs">
               <thead>
-                <tr className="border-b border-white/5 text-[11px] font-semibold text-[#A7B4CC] uppercase tracking-wider">
-                  <th className="py-3 px-4">Ticket / Title</th>
-                  <th className="py-3 px-4">Category</th>
-                  <th className="py-3 px-4">Location</th>
-                  <th className="py-3 px-4">Priority</th>
-                  <th className="py-3 px-4">Status</th>
-                  <th className="py-3 px-4">Received</th>
-                  <th className="py-3 px-4 text-right">Actions</th>
+                <tr className="border-b border-white/[0.06] text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+                  <th className="pb-3 pr-4">Ticket</th>
+                  <th className="pb-3 px-4">Title & Description</th>
+                  <th className="pb-3 px-4">Location</th>
+                  <th className="pb-3 px-4">Priority</th>
+                  <th className="pb-3 px-4">Status</th>
+                  <th className="pb-3 px-4">Reported</th>
+                  <th className="pb-3 pl-4 text-right">Actions</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-white/5 text-xs text-[#F1F5F9]">
+              <tbody className="divide-y divide-white/[0.04]">
                 {filteredComplaints.map((item) => (
                   <tr key={item.id} className="hover:bg-white/[0.02] transition-colors">
-                    <td className="py-3 px-4">
-                      <div className="font-semibold text-slate-100 max-w-sm truncate">{item.title}</div>
-                      <div className="text-[11px] text-[#A7B4CC] font-mono mt-0.5">
-                        #{item.id.slice(0, 8)}
+                    <td className="py-3.5 pr-4 font-mono font-medium text-cyan-400">
+                      #{item.id.slice(0, 8)}
+                    </td>
+                    <td className="py-3.5 px-4 max-w-sm">
+                      <div className="font-semibold text-white truncate">{item.title}</div>
+                      <div className="text-[11px] text-slate-400 line-clamp-1 mt-0.5">
+                        {item.description}
                       </div>
                     </td>
-                    <td className="py-3 px-4 text-[#A7B4CC]">{item.category}</td>
-                    <td className="py-3 px-4 text-[#A7B4CC] max-w-xs truncate">{item.location}</td>
-                    <td className="py-3 px-4">
+                    <td className="py-3.5 px-4 text-slate-300 max-w-xs truncate">{item.location}</td>
+                    <td className="py-3.5 px-4">
                       <PriorityBadge priority={item.priority} />
                     </td>
-                    <td className="py-3 px-4">
-                      <StatusBadge status={item.status} />
+                    <td className="py-3.5 px-4">
+                      <StatusBadge status={item.status} size="sm" />
                     </td>
-                    <td className="py-3 px-4 text-[#A7B4CC] tabular-nums whitespace-nowrap">
+                    <td className="py-3.5 px-4 text-slate-400 tabular-nums whitespace-nowrap">
                       {new Date(item.created_at).toLocaleDateString()}
                     </td>
-                    <td className="py-3 px-4 text-right">
-                      <div className="inline-flex items-center gap-2 justify-end">
+                    <td className="py-3.5 pl-4 text-right">
+                      <div className="inline-flex items-center gap-1.5 justify-end">
                         <button
-                          onClick={() => handleViewHistory(item)}
-                          className="p-1.5 rounded-lg bg-[#151F35] hover:bg-[#1C2942] text-[#A7B4CC] hover:text-[#F1F5F9] transition-colors border border-white/5"
-                          title="View update history"
+                          onClick={() => handleOpenHistory(item)}
+                          className="p-1.5 rounded-lg bg-[#14203e] hover:bg-[#1b2b52] text-slate-300 hover:text-white transition-colors border border-white/5"
+                          title="View resolution history"
                         >
                           <History className="w-3.5 h-3.5" />
                         </button>
+
                         <button
-                          onClick={() => handleOpenUpdateModal(item)}
-                          className="px-3 py-1.5 rounded-lg bg-[#22D3EE] hover:bg-[#67e8f9] text-[#080D1B] font-semibold text-xs transition-colors inline-flex items-center gap-1.5"
+                          onClick={() => handleOpenUpdate(item)}
+                          className="px-3 py-1.5 rounded-lg bg-cyan-400 hover:bg-cyan-300 text-[#090e21] font-semibold text-xs transition-colors shadow-sm inline-flex items-center gap-1"
                         >
-                          <Clock className="w-3.5 h-3.5" />
-                          <span>Update Work</span>
+                          <CheckSquare className="w-3 h-3" />
+                          <span>Update</span>
                         </button>
                       </div>
                     </td>
@@ -246,118 +274,159 @@ export const StaffQueuePage: React.FC = () => {
         )}
       </div>
 
-      {/* Update Status & Work Progress Modal */}
-      {selectedComplaint && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-xs">
-          <div className="w-full max-w-md rounded-2xl bg-[#151F35] border border-white/10 p-6 shadow-2xl relative animate-in fade-in zoom-in-95 duration-150">
-            <button
-              onClick={() => setSelectedComplaint(null)}
-              className="absolute top-4 right-4 text-slate-400 hover:text-white"
+      {/* Status Update Modal */}
+      <AnimatePresence>
+        {selectedComplaint && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 15 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 15 }}
+              className="dash-card dash-card-glow max-w-lg w-full p-6 sm:p-7 space-y-5"
             >
-              <X className="w-5 h-5" />
-            </button>
-
-            <h3 className="text-base font-semibold text-[#F1F5F9] mb-1">Update Case Progress</h3>
-            <p className="text-xs text-[#A7B4CC] mb-4 truncate">
-              {selectedComplaint.title} (#{selectedComplaint.id.slice(0, 8)})
-            </p>
-
-            <form onSubmit={handleSubmitStatusUpdate} className="space-y-4">
-              <div>
-                <label className="block text-xs font-medium text-[#A7B4CC] mb-1.5">New Status</label>
-                <select
-                  value={newStatus}
-                  onChange={(e) => setNewStatus(e.target.value)}
-                  className="w-full bg-[#10182B] border border-white/10 rounded-xl px-3 py-2 text-xs sm:text-sm text-[#F1F5F9] focus:outline-hidden focus:border-cyan-400"
-                >
-                  <option value="in_progress">In Progress (Active Maintenance)</option>
-                  <option value="resolved">Resolved (Completed & Tested)</option>
-                  <option value="assigned">Assigned (Awaiting Field Team)</option>
-                  <option value="under_review">Under Review (Requires Inspection)</option>
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-xs font-medium text-[#A7B4CC] mb-1.5">
-                  Progress Note or Resolution Details
-                </label>
-                <textarea
-                  required
-                  rows={4}
-                  value={statusMessage}
-                  onChange={(e) => setStatusMessage(e.target.value)}
-                  placeholder="e.g. Field technician dispatched. Replaced faulty fuse box and tested circuit. Normal operation restored."
-                  className="w-full bg-[#10182B] border border-white/10 rounded-xl p-3 text-xs sm:text-sm text-[#F1F5F9] placeholder:text-[#A7B4CC]/40 focus:outline-hidden focus:border-cyan-400 resize-y"
-                />
-              </div>
-
-              <div className="flex items-center justify-end gap-3 pt-3 border-t border-white/5">
+              <div className="flex items-center justify-between pb-3 border-b border-white/[0.06]">
+                <div className="flex items-center gap-2">
+                  <Wrench className="w-4 h-4 text-cyan-400" />
+                  <h3 className="text-sm font-bold text-white">Log Work & Status Progression</h3>
+                </div>
                 <button
-                  type="button"
                   onClick={() => setSelectedComplaint(null)}
-                  className="px-3 py-2 text-xs font-medium text-[#A7B4CC] hover:text-[#F1F5F9]"
+                  className="text-slate-400 hover:text-white p-1 rounded-lg hover:bg-white/5"
                 >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  disabled={isUpdating || !statusMessage.trim()}
-                  className="px-4 py-2 text-xs font-semibold rounded-lg bg-[#22D3EE] hover:bg-[#67e8f9] text-[#080D1B] disabled:opacity-50 inline-flex items-center gap-1.5"
-                >
-                  {isUpdating ? (
-                    <span className="w-3.5 h-3.5 border-2 border-current border-t-transparent rounded-full animate-spin" />
-                  ) : (
-                    <Send className="w-3.5 h-3.5" />
-                  )}
-                  <span>Post Status Update</span>
+                  <X className="w-4 h-4" />
                 </button>
               </div>
-            </form>
-          </div>
-        </div>
-      )}
 
-      {/* Update History Modal */}
-      {historyComplaint && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-xs">
-          <div className="w-full max-w-lg rounded-2xl bg-[#151F35] border border-white/10 p-6 shadow-2xl relative max-h-[85vh] flex flex-col">
-            <button
-              onClick={() => setHistoryComplaint(null)}
-              className="absolute top-4 right-4 text-slate-400 hover:text-white"
+              <div className="p-3.5 rounded-xl bg-[#0c142b] border border-white/5 space-y-1">
+                <span className="font-mono text-[10px] text-cyan-400 font-semibold">
+                  #{selectedComplaint.id.slice(0, 8)}
+                </span>
+                <p className="text-xs font-semibold text-white truncate">{selectedComplaint.title}</p>
+                <p className="text-[11px] text-slate-400 truncate">{selectedComplaint.location}</p>
+              </div>
+
+              <form onSubmit={handleStatusSubmit} className="space-y-4">
+                <div>
+                  <label className="block text-xs font-medium text-slate-300 mb-1.5">
+                    Update Workflow Status
+                  </label>
+                  <select
+                    value={newStatus}
+                    onChange={(e) => setNewStatus(e.target.value)}
+                    className="w-full bg-[#0c142b] border border-white/10 rounded-xl px-3 py-2.5 text-xs text-white focus:outline-hidden focus:border-cyan-400/60 transition-all font-semibold"
+                  >
+                    <option value="in_progress" className="bg-[#0b1328]">In Progress (Active Field Work)</option>
+                    <option value="resolved" className="bg-[#0b1328]">Resolved (Completed / Repaired)</option>
+                    <option value="assigned" className="bg-[#0b1328]">Assigned (Under Assessment)</option>
+                    <option value="under_review" className="bg-[#0b1328]">Under Review</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-medium text-slate-300 mb-1.5">
+                    Progress Note
+                  </label>
+                  <textarea
+                    rows={2}
+                    value={progressNote}
+                    onChange={(e) => setProgressNote(e.target.value)}
+                    placeholder="E.g., Replacement parts ordered, scheduled testing for tomorrow morning..."
+                    className="w-full bg-[#0c142b] border border-white/10 rounded-xl p-3 text-xs text-white placeholder:text-slate-500 focus:outline-hidden focus:border-cyan-400/60 transition-all"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-medium text-slate-300 mb-1.5">
+                    Resolution Details (If completing ticket)
+                  </label>
+                  <textarea
+                    rows={2}
+                    value={resolutionDetails}
+                    onChange={(e) => setResolutionDetails(e.target.value)}
+                    placeholder="E.g., Circuit breaker replaced and electrical panel certified nominal..."
+                    className="w-full bg-[#0c142b] border border-white/10 rounded-xl p-3 text-xs text-white placeholder:text-slate-500 focus:outline-hidden focus:border-cyan-400/60 transition-all"
+                  />
+                </div>
+
+                <div className="pt-2 flex items-center justify-end gap-3 border-t border-white/[0.06]">
+                  <button
+                    type="button"
+                    onClick={() => setSelectedComplaint(null)}
+                    className="px-4 py-2 text-xs font-medium text-slate-300 hover:text-white"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={isUpdating}
+                    className="px-4 py-2.5 rounded-xl bg-cyan-400 hover:bg-cyan-300 text-[#090e21] font-semibold text-xs transition-colors shadow-md shadow-cyan-500/20 disabled:opacity-50"
+                  >
+                    {isUpdating ? 'Saving...' : 'Publish Update'}
+                  </button>
+                </div>
+              </form>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* History Slide-over Modal */}
+      <AnimatePresence>
+        {historyComplaint && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              className="dash-card dash-card-glow max-w-lg w-full p-6 sm:p-7 space-y-5"
             >
-              <X className="w-5 h-5" />
-            </button>
+              <div className="flex items-center justify-between pb-3 border-b border-white/[0.06]">
+                <div className="flex items-center gap-2">
+                  <History className="w-4 h-4 text-cyan-400" />
+                  <h3 className="text-sm font-bold text-white">Work Progress History</h3>
+                </div>
+                <button onClick={() => setHistoryComplaint(null)} className="text-slate-400 hover:text-white">
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
 
-            <h3 className="text-base font-semibold text-[#F1F5F9] mb-1">Case Update History</h3>
-            <p className="text-xs text-[#A7B4CC] mb-4 truncate">{historyComplaint.title}</p>
+              <div className="p-3 rounded-xl bg-[#0c142b] border border-white/5 space-y-1">
+                <span className="font-mono text-[10px] text-cyan-400 font-semibold">
+                  #{historyComplaint.id.slice(0, 8)}
+                </span>
+                <p className="text-xs font-semibold text-white truncate">{historyComplaint.title}</p>
+              </div>
 
-            <div className="flex-1 overflow-y-auto space-y-3 pr-1">
               {isLoadingHistory ? (
-                <LoadingSkeleton rows={3} />
+                <div className="py-8 text-center text-slate-400 text-xs">Loading progress logs...</div>
               ) : historyUpdates.length === 0 ? (
-                <p className="text-xs text-[#A7B4CC] text-center py-8">
-                  No progress entries recorded yet.
-                </p>
+                <div className="py-8 text-center text-slate-400 text-xs">No progress logs recorded yet.</div>
               ) : (
-                historyUpdates.map((u, i) => (
-                  <div key={i} className="p-3 rounded-xl bg-[#10182B] border border-white/5 text-xs">
-                    <div className="flex items-center justify-between text-[11px] text-[#A7B4CC] mb-1">
-                      <span className="font-semibold text-cyan-300">
-                        {u.status ? u.status.replace(/_/g, ' ') : 'Update'}
-                      </span>
-                      <span className="tabular-nums">{new Date(u.created_at).toLocaleString()}</span>
+                <div className="space-y-3 max-h-72 overflow-y-auto pr-1">
+                  {historyUpdates.map((u, i) => (
+                    <div key={i} className="p-3.5 rounded-xl bg-[#0c142b] border border-white/5 space-y-1 text-xs">
+                      <div className="flex items-center justify-between text-[11px] text-slate-400">
+                        <span className="font-semibold text-cyan-300">{u.author_name || 'Staff Technician'}</span>
+                        <span className="tabular-nums">{new Date(u.created_at).toLocaleString()}</span>
+                      </div>
+                      <p className="text-white whitespace-pre-wrap leading-relaxed">{u.message}</p>
                     </div>
-                    {u.message && <p className="text-slate-200 mt-1">{u.message}</p>}
-                    {u.user_name && (
-                      <span className="text-[10px] text-[#A7B4CC] block mt-1">Logged by: {u.user_name}</span>
-                    )}
-                  </div>
-                ))
+                  ))}
+                </div>
               )}
-            </div>
+
+              <div className="pt-2 border-t border-white/[0.06] flex justify-end">
+                <button
+                  onClick={() => setHistoryComplaint(null)}
+                  className="px-4 py-2 rounded-xl bg-white/10 hover:bg-white/15 text-white text-xs font-medium"
+                >
+                  Close
+                </button>
+              </div>
+            </motion.div>
           </div>
-        </div>
-      )}
+        )}
+      </AnimatePresence>
     </div>
   );
 };

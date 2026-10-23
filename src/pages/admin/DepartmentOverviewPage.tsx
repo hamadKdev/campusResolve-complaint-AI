@@ -11,7 +11,11 @@ import {
   Users,
   ShieldAlert,
   Info,
+  Layers,
+  Wrench,
+  CheckCircle2,
 } from 'lucide-react';
+import { motion } from 'motion/react';
 
 export const DepartmentOverviewPage: React.FC = () => {
   const [departments, setDepartments] = useState<Department[]>([]);
@@ -40,7 +44,6 @@ export const DepartmentOverviewPage: React.FC = () => {
     loadData();
   }, [loadData]);
 
-  // Compute staff per department
   const getStaffForDept = (deptId: string) => {
     return users.filter((u) => u.department_id === deptId);
   };
@@ -48,76 +51,97 @@ export const DepartmentOverviewPage: React.FC = () => {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div>
-        <h1 className="text-xl sm:text-2xl font-bold text-[#F1F5F9] tracking-tight">
-          University Operational Departments
-        </h1>
-        <p className="text-xs sm:text-sm text-[#A7B4CC] mt-0.5">
-          Registered campus faculties, facility teams, and administrative dispatch units.
-        </p>
-      </div>
-
-      {/* Contract Notification Banner */}
-      <div className="p-4 rounded-xl bg-[#10182B] border border-cyan-500/20 flex items-start gap-3 text-xs text-[#A7B4CC]">
-        <Info className="w-4 h-4 text-cyan-400 shrink-0 mt-0.5" />
-        <div className="leading-relaxed">
-          <strong className="text-[#F1F5F9]">Contract Note:</strong> Departments are provisioned via
-          university directory configuration and queried via <code className="text-cyan-300">GET /departments</code>. In accordance with backend security rules, department records are read-only in this console.
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <span className="text-[11px] font-bold uppercase tracking-wider text-cyan-400">
+            University Structure
+          </span>
+          <h1 className="text-2xl font-bold text-white tracking-tight mt-1">
+            Operational Departments
+          </h1>
+          <p className="text-xs text-slate-400 mt-0.5">
+            Registered campus faculties, facility teams, and specialized dispatch units.
+          </p>
+        </div>
+        <div className="text-xs font-mono text-cyan-300 bg-cyan-500/10 border border-cyan-500/25 px-3 py-1.5 rounded-xl">
+          {departments.length} Active Departments
         </div>
       </div>
 
       {errorMsg && <ErrorBanner message={errorMsg} onRetry={loadData} />}
 
-      {/* Departments Grid */}
       {isLoading ? (
         <LoadingSkeleton rows={4} />
       ) : departments.length === 0 ? (
         <EmptyState
-          title="No departments found"
-          description="Unable to retrieve department catalog from the backend."
-          action={{
-            label: 'Retry Fetch',
-            onClick: loadData,
-          }}
+          title="No departments available"
+          description="No operational departments were found in the database."
         />
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {departments.map((dept) => {
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {departments.map((dept, index) => {
             const staffMembers = getStaffForDept(dept.id);
 
             return (
-              <div
+              <motion.div
                 key={dept.id}
-                className="p-5 rounded-2xl bg-[#10182B] border border-white/5 hover:border-white/10 transition-colors flex flex-col justify-between"
+                initial={{ opacity: 0, y: 15 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.3, delay: index * 0.05 }}
+                className="dash-card dash-card-glow p-6 sm:p-7 flex flex-col justify-between space-y-4"
               >
                 <div>
-                  <div className="flex items-center justify-between mb-3">
-                    <div className="w-9 h-9 rounded-xl bg-cyan-500/10 border border-cyan-500/20 text-cyan-400 flex items-center justify-center">
-                      <Building2 className="w-4 h-4" />
+                  <div className="flex items-center justify-between">
+                    <div className="w-10 h-10 rounded-xl bg-cyan-500/10 border border-cyan-500/20 text-cyan-400 flex items-center justify-center">
+                      <Building2 className="w-5 h-5" />
                     </div>
-                    {dept.code && (
-                      <span className="text-[11px] font-mono text-cyan-300 px-2 py-0.5 rounded bg-cyan-500/10 border border-cyan-500/20 font-semibold">
-                        {dept.code}
-                      </span>
-                    )}
+                    <span className="text-xs font-mono font-medium text-slate-400">
+                      ID: #{dept.id.slice(0, 8)}
+                    </span>
                   </div>
 
-                  <h3 className="text-sm font-semibold text-[#F1F5F9]">{dept.name}</h3>
-                  <p className="text-xs text-[#A7B4CC] mt-1 leading-relaxed">
-                    {dept.description || 'Designated university operational unit.'}
+                  <h3 className="text-base font-bold text-white mt-4 tracking-tight">
+                    {dept.name}
+                  </h3>
+                  <p className="text-xs text-slate-300 mt-1 leading-relaxed">
+                    {dept.description || 'General university operational dispatch and maintenance.'}
                   </p>
                 </div>
 
-                <div className="mt-5 pt-4 border-t border-white/5 flex items-center justify-between text-xs">
-                  <span className="text-[#A7B4CC] flex items-center gap-1.5">
-                    <Users className="w-3.5 h-3.5 text-violet-400" />
-                    <span>Active Staff:</span>
-                  </span>
-                  <span className="font-mono text-[#F1F5F9] tabular-nums font-semibold">
-                    {staffMembers.length} technician(s)
-                  </span>
+                <div className="pt-4 border-t border-white/[0.06] space-y-3">
+                  <div className="flex items-center justify-between text-xs">
+                    <span className="text-slate-400 flex items-center gap-1.5">
+                      <Users className="w-3.5 h-3.5 text-cyan-400" />
+                      <span>Assigned Technicians</span>
+                    </span>
+                    <span className="font-bold text-white tabular-nums">
+                      {staffMembers.length} staff
+                    </span>
+                  </div>
+
+                  {staffMembers.length > 0 ? (
+                    <div className="flex flex-wrap gap-1.5 pt-1">
+                      {staffMembers.slice(0, 3).map((s) => (
+                        <span
+                          key={s.id}
+                          className="text-[11px] font-medium text-slate-300 bg-[#0c142b] border border-white/5 px-2 py-0.5 rounded-md truncate max-w-[140px]"
+                        >
+                          {s.full_name}
+                        </span>
+                      ))}
+                      {staffMembers.length > 3 && (
+                        <span className="text-[11px] text-slate-400 px-1 py-0.5">
+                          +{staffMembers.length - 3} more
+                        </span>
+                      )}
+                    </div>
+                  ) : (
+                    <p className="text-[11px] text-amber-400 italic">
+                      No technicians currently mapped. Assign staff in User Directory.
+                    </p>
+                  )}
                 </div>
-              </div>
+              </motion.div>
             );
           })}
         </div>

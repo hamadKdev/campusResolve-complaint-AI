@@ -1,7 +1,8 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { Link } from 'react-router-dom';
+import { motion, AnimatePresence } from 'motion/react';
 import { complaintService } from '../../services/complaintService';
-import { Complaint, ComplaintStatus } from '../../types';
+import { Complaint } from '../../types';
 import { StatusBadge } from '../../components/common/StatusBadge';
 import { PriorityBadge } from '../../components/common/PriorityBadge';
 import { EmptyState } from '../../components/common/EmptyState';
@@ -17,6 +18,11 @@ import {
   Trash2,
   PlusCircle,
   X,
+  FileText,
+  Clock,
+  CheckCircle2,
+  AlertTriangle,
+  ArrowUpRight,
 } from 'lucide-react';
 
 const STATUS_FILTERS: { label: string; value: string }[] = [
@@ -68,7 +74,7 @@ export const MyComplaintsPage: React.FC = () => {
     setIsCancelling(true);
     try {
       await complaintService.cancelComplaint(cancellingComplaint.id);
-      success('Complaint Cancelled', `Complaint ID ${cancellingComplaint.id.slice(0, 8)} has been cancelled.`);
+      success('Complaint Cancelled', `Complaint #${cancellingComplaint.id.slice(0, 8)} has been cancelled.`);
       setCancellingComplaint(null);
       loadComplaints();
     } catch (err) {
@@ -89,43 +95,96 @@ export const MyComplaintsPage: React.FC = () => {
     );
   });
 
+  const totalCount = complaints.length;
+  const activeCount = complaints.filter((c) => ['submitted', 'under_review', 'assigned', 'in_progress'].includes(c.status)).length;
+  const resolvedCount = complaints.filter((c) => c.status === 'resolved').length;
+
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      {/* Header and Quick Stats Strip */}
+      <motion.div
+        initial={{ opacity: 0, y: -10 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="flex flex-col sm:flex-row sm:items-center justify-between gap-4"
+      >
         <div>
-          <h1 className="text-xl sm:text-2xl font-bold text-[#F1F5F9] tracking-tight">
-            My Campus Complaints
+          <h1 className="text-2xl font-bold text-white tracking-tight flex items-center gap-2.5">
+            <span>My Campus Complaints</span>
+            <span className="text-xs px-2.5 py-0.5 rounded-full bg-cyan-500/10 text-cyan-300 border border-cyan-500/20 font-mono font-medium">
+              {totalCount} Total
+            </span>
           </h1>
-          <p className="text-xs sm:text-sm text-[#A7B4CC] mt-0.5">
-            Full history of your logged complaints, real-time status updates, and audit logs.
+          <p className="text-xs sm:text-sm text-[#8c9fc2] mt-1">
+            Track your logged grievances, real-time department updates, and resolution audit records.
           </p>
         </div>
         <Link
           to="/student/submit"
-          className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-[#22D3EE] hover:bg-[#67e8f9] text-[#080D1B] font-semibold text-xs sm:text-sm transition-colors whitespace-nowrap shrink-0 shadow-sm shadow-cyan-500/20"
+          className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-to-r from-cyan-400 to-blue-500 hover:from-cyan-300 hover:to-blue-400 text-[#090e21] font-semibold text-xs sm:text-sm transition-all whitespace-nowrap shrink-0 shadow-lg shadow-cyan-500/20 active:scale-95"
         >
           <PlusCircle className="w-4 h-4" />
           <span>New Complaint</span>
         </Link>
+      </motion.div>
+
+      {/* Mini metric pills */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <div className="dash-card dash-card-glow p-4 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-cyan-500/10 border border-cyan-500/20 flex items-center justify-center text-cyan-400">
+              <FileText className="w-5 h-5" />
+            </div>
+            <div>
+              <div className="text-xs text-[#8c9fc2]">Total Filed</div>
+              <div className="text-lg font-bold text-white tabular-nums">{totalCount}</div>
+            </div>
+          </div>
+          <span className="text-[11px] text-[#617498] font-mono">All Time</span>
+        </div>
+
+        <div className="dash-card dash-card-glow p-4 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center text-amber-400">
+              <Clock className="w-5 h-5" />
+            </div>
+            <div>
+              <div className="text-xs text-[#8c9fc2]">Under Action</div>
+              <div className="text-lg font-bold text-amber-300 tabular-nums">{activeCount}</div>
+            </div>
+          </div>
+          <span className="text-[11px] text-amber-400/80 font-mono">In Progress</span>
+        </div>
+
+        <div className="dash-card dash-card-glow p-4 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-400">
+              <CheckCircle2 className="w-5 h-5" />
+            </div>
+            <div>
+              <div className="text-xs text-[#8c9fc2]">Successfully Solved</div>
+              <div className="text-lg font-bold text-emerald-400 tabular-nums">{resolvedCount}</div>
+            </div>
+          </div>
+          <span className="text-[11px] text-emerald-400/80 font-mono">Resolved</span>
+        </div>
       </div>
 
       {/* Filter and Search Bar */}
-      <div className="p-4 rounded-2xl bg-[#10182B] border border-white/5 space-y-4">
+      <div className="dash-card dash-card-glow p-4 space-y-4">
         {/* Search */}
         <div className="relative">
-          <Search className="w-4 h-4 text-[#A7B4CC] absolute left-3.5 top-1/2 -translate-y-1/2" />
+          <Search className="w-4 h-4 text-[#617498] absolute left-3.5 top-1/2 -translate-y-1/2" />
           <input
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Search complaints by title, category, location, or ID..."
-            className="w-full bg-[#151F35] border border-white/10 rounded-xl pl-10 pr-4 py-2 text-xs sm:text-sm text-[#F1F5F9] placeholder:text-[#A7B4CC]/40 focus:outline-hidden focus:border-cyan-400/60 transition-all"
+            placeholder="Search grievances by title, category, location, or ticket ID..."
+            className="w-full bg-[#0a1024]/80 border border-white/10 rounded-xl pl-10 pr-10 py-2.5 text-xs sm:text-sm text-white placeholder:text-[#617498] focus:outline-hidden focus:border-cyan-400/60 focus:ring-1 focus:ring-cyan-400/30 transition-all"
           />
           {searchQuery && (
             <button
               onClick={() => setSearchQuery('')}
-              className="absolute right-3.5 top-1/2 -translate-y-1/2 text-[#A7B4CC] hover:text-[#F1F5F9]"
+              className="absolute right-3.5 top-1/2 -translate-y-1/2 text-[#8c9fc2] hover:text-white"
             >
               <X className="w-4 h-4" />
             </button>
@@ -134,39 +193,42 @@ export const MyComplaintsPage: React.FC = () => {
 
         {/* Status Tabs */}
         <div className="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-none">
-          <span className="text-xs text-[#A7B4CC] mr-2 shrink-0 flex items-center gap-1">
-            <Filter className="w-3.5 h-3.5" />
-            <span>Status:</span>
+          <span className="text-xs text-[#8c9fc2] mr-2 shrink-0 flex items-center gap-1">
+            <Filter className="w-3.5 h-3.5 text-cyan-400" />
+            <span>Filter:</span>
           </span>
-          {STATUS_FILTERS.map((f) => (
-            <button
-              key={f.value}
-              onClick={() => setActiveFilter(f.value)}
-              className={`px-3 py-1.5 rounded-lg text-xs font-medium whitespace-nowrap transition-colors ${
-                activeFilter === f.value
-                  ? 'bg-cyan-500/20 text-cyan-300 border border-cyan-500/30'
-                  : 'text-[#A7B4CC] hover:text-[#F1F5F9] hover:bg-white/5'
-              }`}
-            >
-              {f.label}
-            </button>
-          ))}
+          {STATUS_FILTERS.map((f) => {
+            const active = activeFilter === f.value;
+            return (
+              <button
+                key={f.value}
+                onClick={() => setActiveFilter(f.value)}
+                className={`px-3 py-1.5 rounded-lg text-xs font-medium whitespace-nowrap transition-all ${
+                  active
+                    ? 'bg-cyan-500/15 text-cyan-300 border border-cyan-400/30 shadow-sm shadow-cyan-500/10'
+                    : 'text-[#8c9fc2] hover:text-white hover:bg-white/5 border border-transparent'
+                }`}
+              >
+                {f.label}
+              </button>
+            );
+          })}
         </div>
       </div>
 
       {/* Main Table Content */}
-      <div className="rounded-2xl bg-[#10182B] border border-white/5 p-6">
+      <div className="dash-card dash-card-glow p-5 sm:p-6">
         {errorMsg && <ErrorBanner message={errorMsg} onRetry={loadComplaints} />}
 
         {isLoading ? (
           <LoadingSkeleton rows={5} />
         ) : filteredComplaints.length === 0 ? (
           <EmptyState
-            title="No complaints match your filters"
+            title="No complaints found"
             description={
               searchQuery
-                ? 'Try adjusting your search terms or resetting the status filter.'
-                : 'You have no complaints logged under this status.'
+                ? 'Try adjusting your search criteria or resetting the status filter.'
+                : 'You have no complaints logged under this status category.'
             }
             action={
               searchQuery || activeFilter !== 'all'
@@ -187,45 +249,61 @@ export const MyComplaintsPage: React.FC = () => {
           <div className="overflow-x-auto">
             <table className="w-full text-left border-collapse">
               <thead>
-                <tr className="border-b border-white/5 text-[11px] font-semibold text-[#A7B4CC] uppercase tracking-wider">
-                  <th className="py-3 px-4">Complaint ID & Title</th>
-                  <th className="py-3 px-4">Category</th>
-                  <th className="py-3 px-4">Location</th>
-                  <th className="py-3 px-4">Priority</th>
-                  <th className="py-3 px-4">Status</th>
-                  <th className="py-3 px-4">Submitted</th>
-                  <th className="py-3 px-4 text-right">Actions</th>
+                <tr className="border-b border-white/10 text-[11px] font-semibold text-[#8c9fc2] uppercase tracking-wider">
+                  <th className="py-3.5 px-4">Ticket ID & Title</th>
+                  <th className="py-3.5 px-4">Category</th>
+                  <th className="py-3.5 px-4">Location</th>
+                  <th className="py-3.5 px-4">Priority</th>
+                  <th className="py-3.5 px-4">Status</th>
+                  <th className="py-3.5 px-4">Submitted</th>
+                  <th className="py-3.5 px-4 text-right">Actions</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-white/5 text-xs text-[#F1F5F9]">
+              <tbody className="divide-y divide-white/5 text-xs text-[#c4d1e6]">
                 {filteredComplaints.map((item) => {
                   const isCancellable =
                     item.status === 'submitted' || item.status === 'under_review';
 
                   return (
-                    <tr key={item.id} className="hover:bg-white/[0.02] transition-colors">
-                      <td className="py-3 px-4">
-                        <div className="font-semibold text-slate-100 max-w-sm truncate">{item.title}</div>
-                        <div className="text-[11px] text-[#A7B4CC] font-mono mt-0.5">
+                    <tr
+                      key={item.id}
+                      className="hover:bg-white/[0.03] transition-colors group"
+                    >
+                      <td className="py-3.5 px-4">
+                        <Link
+                          to={`/student/complaints/${item.id}`}
+                          className="font-semibold text-white group-hover:text-cyan-300 transition-colors block max-w-sm truncate"
+                        >
+                          {item.title}
+                        </Link>
+                        <div className="text-[11px] text-[#617498] font-mono mt-0.5">
                           #{item.id.slice(0, 8)}
                         </div>
                       </td>
-                      <td className="py-3 px-4 text-[#A7B4CC]">{item.category}</td>
-                      <td className="py-3 px-4 text-[#A7B4CC] max-w-xs truncate">{item.location}</td>
-                      <td className="py-3 px-4">
+                      <td className="py-3.5 px-4">
+                        <span className="px-2 py-0.5 rounded-md bg-[#182444] border border-white/5 text-[#8c9fc2] text-[11px]">
+                          {item.category}
+                        </span>
+                      </td>
+                      <td className="py-3.5 px-4 text-[#8c9fc2] max-w-xs truncate">{item.location}</td>
+                      <td className="py-3.5 px-4">
                         <PriorityBadge priority={item.priority} />
                       </td>
-                      <td className="py-3 px-4">
+                      <td className="py-3.5 px-4">
                         <StatusBadge status={item.status} />
                       </td>
-                      <td className="py-3 px-4 text-[#A7B4CC] tabular-nums whitespace-nowrap">
-                        {new Date(item.created_at).toLocaleDateString()}
+                      <td className="py-3.5 px-4 text-[#8c9fc2] tabular-nums whitespace-nowrap">
+                        {new Date(item.created_at).toLocaleDateString(undefined, {
+                          month: 'short',
+                          day: 'numeric',
+                          year: 'numeric',
+                        })}
                       </td>
-                      <td className="py-3 px-4 text-right">
+                      <td className="py-3.5 px-4 text-right">
                         <div className="inline-flex items-center gap-1.5 justify-end">
                           <Link
                             to={`/student/complaints/${item.id}`}
-                            className="p-1.5 rounded-lg bg-[#151F35] hover:bg-[#1C2942] text-cyan-300 hover:text-white transition-colors border border-white/5"
+                            className="p-1.5 rounded-lg bg-[#182444] hover:bg-cyan-500/20 text-cyan-300 hover:text-white transition-colors border border-white/5 hover:border-cyan-500/30"
                             title="View full details and updates"
                           >
                             <Eye className="w-3.5 h-3.5" />
@@ -256,7 +334,7 @@ export const MyComplaintsPage: React.FC = () => {
       <ConfirmModal
         isOpen={!!cancellingComplaint}
         title="Cancel Campus Complaint?"
-        message={`Are you sure you want to cancel "${cancellingComplaint?.title}"? This endpoint cancels eligible complaints without hard-deleting the audit record.`}
+        message={`Are you sure you want to cancel "${cancellingComplaint?.title}"? This cancels eligible complaints without deleting audit records.`}
         confirmLabel="Cancel Complaint"
         isDestructive={true}
         isLoading={isCancelling}

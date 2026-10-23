@@ -22,8 +22,11 @@ import {
   Send,
   X,
   Bot,
-  HelpCircle,
+  Layers,
+  ChevronRight,
+  TrendingUp,
 } from 'lucide-react';
+import { motion, AnimatePresence } from 'motion/react';
 
 export const FollowupApprovalsPage: React.FC = () => {
   const { success, error } = useToast();
@@ -68,53 +71,55 @@ export const FollowupApprovalsPage: React.FC = () => {
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  }, [statusFilter]);
 
   useEffect(() => {
     loadData();
   }, [loadData]);
 
-  const handleOpenReview = (approval: FollowupApproval, dec: 'approved' | 'rejected') => {
-    setReviewingApproval(approval);
+  const handleOpenReview = (item: FollowupApproval, dec: 'approved' | 'rejected') => {
+    setReviewingApproval(item);
     setDecision(dec);
   };
 
-  const handleConfirmReview = async () => {
+  const handleConfirmDecision = async () => {
     if (!reviewingApproval) return;
     setIsSubmittingDecision(true);
     try {
       await approvalService.reviewApproval(reviewingApproval.id, decision);
       success(
-        `Recommendation ${decision === 'approved' ? 'Approved' : 'Rejected'}`,
-        `Approval ID #${reviewingApproval.id.slice(0, 8)} updated to ${decision}.`
+        `Approval ${decision === 'approved' ? 'Approved' : 'Rejected'}`,
+        `Recommendation for complaint #${reviewingApproval.complaint_id.slice(0, 8)} has been marked as ${decision}.`
       );
       setReviewingApproval(null);
-      if (activeApproval?.id === reviewingApproval.id) {
-        setActiveApproval(null);
-      }
       loadData();
     } catch (err) {
-      error('Review Submission Failed', formatApiErrorMessage(err));
+      error('Decision Submission Failed', formatApiErrorMessage(err));
     } finally {
       setIsSubmittingDecision(false);
     }
   };
 
-  const handleCreateApproval = async (e: React.FormEvent) => {
+  const handleCreateApprovalSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!selectedComplaintId || !reason.trim()) {
-      error('Validation Error', 'Complaint ID and reasoning are required.');
+    if (!selectedComplaintId) {
+      error('Complaint Required', 'Please select a complaint to attach the recommendation to.');
+      return;
+    }
+    if (!reason.trim()) {
+      error('Reason Required', 'Please explain the justification for this action.');
       return;
     }
 
     setIsCreating(true);
     try {
-      await approvalService.createApproval({
+      const payload: CreateApprovalPayload = {
         complaint_id: selectedComplaintId,
         recommended_action: recommendedAction,
         reason: reason.trim(),
-      });
-      success('Recommendation Created', 'New follow-up approval request recorded.');
+      };
+      await approvalService.createApproval(payload);
+      success('Approval Created', 'Manual follow-up request queued for human review.');
       setIsCreateModalOpen(false);
       setSelectedComplaintId('');
       setReason('');
@@ -126,177 +131,198 @@ export const FollowupApprovalsPage: React.FC = () => {
     }
   };
 
-  const handleTriggerFollowupAgent = async () => {
+  const handleTriggerAgent = async () => {
     if (complaints.length === 0) {
-      error('Notice', 'No complaints exist to trigger follow-up agent against.');
+      error('No Complaints', 'No tickets available to run follow-up scans.');
       return;
     }
-    const target = complaints.find((c) => c.status !== 'resolved' && c.status !== 'closed') || complaints[0];
+    const target = complaints.find(
+      (c) => c.status === 'assigned' || c.status === 'in_progress'
+    ) || complaints[0];
 
     setIsRunningAgent(true);
     try {
       await agentService.runFollowupAgent(target.id);
-      success('Follow-up Agent Executed', `Agent evaluated complaint #${target.id.slice(0, 8)}.`);
+      success(
+        'Agent Probed Unresolved Case',
+        `Analyzed ticket #${target.id.slice(0, 8)}. Evaluated resolution bottlenecks.`
+      );
       loadData();
     } catch (err) {
-      error('Agent Execution', formatApiErrorMessage(err));
+      error('Follow-up Agent Failed', formatApiErrorMessage(err));
     } finally {
       setIsRunningAgent(false);
     }
   };
+
+  const getAssociatedComplaint = (cid: string): Complaint | undefined => {
+    return complaints.find((c) => c.id === cid);
+  };
+
+  const pendingCount = approvals.filter((a) => a.status === 'pending').length;
+  const approvedCount = approvals.filter((a) => a.status === 'approved').length;
+  const rejectedCount = approvals.filter((a) => a.status === 'rejected').length;
 
   const filteredApprovals = approvals.filter((a) => {
     if (statusFilter === 'all') return true;
     return a.status === statusFilter;
   });
 
-  const getAssociatedComplaint = (cid: string) => {
-    return complaints.find((c) => c.id === cid);
-  };
-
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-6 rounded-2xl bg-gradient-to-r from-[#10182B] to-[#151F35] border border-white/5">
+      {/* Top Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-violet-500/15 border border-violet-500/30 text-xs font-semibold text-violet-300 mb-2">
-            <Sparkles className="w-3.5 h-3.5" />
-            <span>Human-in-the-Loop AI Oversight</span>
-          </div>
-          <h1 className="text-xl sm:text-2xl font-bold text-[#F1F5F9] tracking-tight">
+          <span className="text-[11px] font-bold uppercase tracking-wider text-cyan-400">
+            Autonomous Agent Governance
+          </span>
+          <h1 className="text-2xl font-bold text-white tracking-tight mt-1">
             AI Follow-Up Approvals
           </h1>
-          <p className="text-xs sm:text-sm text-[#A7B4CC] mt-0.5">
-            Review recommendations generated by autonomous n8n Follow-up Agents. Approve or reject escalations with full auditability.
+          <p className="text-xs text-slate-400 mt-0.5">
+            Human-in-the-loop verification for autonomous follow-up agent recommendations.
           </p>
         </div>
 
-        <div className="flex items-center gap-3">
-          <button
-            onClick={handleTriggerFollowupAgent}
-            disabled={isRunningAgent}
-            className="px-4 py-2.5 rounded-xl bg-violet-600 hover:bg-violet-500 text-white font-semibold text-xs transition-colors inline-flex items-center gap-1.5 shadow-sm shadow-violet-500/20 disabled:opacity-50"
-          >
-            {isRunningAgent ? (
-              <span className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
-            ) : (
-              <Bot className="w-4 h-4" />
-            )}
-            <span>Run Follow-up Agent</span>
-          </button>
+        <div className="flex items-center gap-2.5">
           <button
             onClick={() => setIsCreateModalOpen(true)}
-            className="px-4 py-2.5 rounded-xl bg-[#22D3EE] hover:bg-[#67e8f9] text-[#080D1B] font-semibold text-xs transition-colors inline-flex items-center gap-1.5 shadow-sm shadow-cyan-500/20"
+            className="px-3.5 py-2.5 rounded-xl bg-[#14203e] hover:bg-[#1b2b54] text-slate-200 border border-white/10 text-xs font-semibold transition-colors inline-flex items-center gap-2"
           >
-            <PlusCircle className="w-4 h-4" />
-            <span>New Recommendation</span>
+            <PlusCircle className="w-4 h-4 text-cyan-400" />
+            <span>Create Recommendation</span>
+          </button>
+          <button
+            onClick={handleTriggerAgent}
+            disabled={isRunningAgent}
+            className="px-4 py-2.5 rounded-xl bg-cyan-400 hover:bg-cyan-300 text-[#090e21] text-xs font-semibold transition-colors shadow-md shadow-cyan-500/20 inline-flex items-center gap-2 disabled:opacity-50"
+          >
+            {isRunningAgent ? (
+              <span className="w-4 h-4 border-2 border-[#090e21] border-t-transparent rounded-full animate-spin" />
+            ) : (
+              <Sparkles className="w-4 h-4" />
+            )}
+            <span>Trigger AI Scan</span>
           </button>
         </div>
       </div>
 
-      {/* Explanation Banner */}
-      <div className="p-4 rounded-xl bg-[#10182B] border border-white/5 flex items-start gap-3 text-xs text-[#A7B4CC]">
-        <HelpCircle className="w-4 h-4 text-cyan-400 shrink-0 mt-0.5" />
-        <div className="leading-relaxed">
-          <strong className="text-[#F1F5F9]">Administrative Control Principle:</strong> Approving an AI
-          recommendation updates its status on the university server. No reminder or escalation is dispatched without verified human authorization.
+      {/* Metrics Row */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <div className="dash-card dash-card-glow p-5 flex items-center justify-between">
+          <div>
+            <span className="text-xs font-medium text-slate-400">Pending Review</span>
+            <div className="text-2xl font-bold text-amber-300 mt-1 tabular-nums">{pendingCount}</div>
+            <p className="text-[11px] text-slate-400 mt-0.5">Awaiting human authorization</p>
+          </div>
+          <div className="w-10 h-10 rounded-xl bg-amber-500/10 text-amber-400 border border-amber-500/20 flex items-center justify-center">
+            <Clock className="w-5 h-5" />
+          </div>
+        </div>
+
+        <div className="dash-card dash-card-glow p-5 flex items-center justify-between">
+          <div>
+            <span className="text-xs font-medium text-slate-400">Approved Reminders</span>
+            <div className="text-2xl font-bold text-emerald-300 mt-1 tabular-nums">{approvedCount}</div>
+            <p className="text-[11px] text-slate-400 mt-0.5">Dispatched to technician queues</p>
+          </div>
+          <div className="w-10 h-10 rounded-xl bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 flex items-center justify-center">
+            <CheckCircle2 className="w-5 h-5" />
+          </div>
+        </div>
+
+        <div className="dash-card dash-card-glow p-5 flex items-center justify-between">
+          <div>
+            <span className="text-xs font-medium text-slate-400">Dismissed / Rejected</span>
+            <div className="text-2xl font-bold text-rose-300 mt-1 tabular-nums">{rejectedCount}</div>
+            <p className="text-[11px] text-slate-400 mt-0.5">Filtered by administrator</p>
+          </div>
+          <div className="w-10 h-10 rounded-xl bg-rose-500/10 text-rose-400 border border-rose-500/20 flex items-center justify-center">
+            <XCircle className="w-5 h-5" />
+          </div>
         </div>
       </div>
 
-      {/* Status Filter Tabs */}
-      <div className="flex items-center gap-1.5 overflow-x-auto pb-1">
-        <span className="text-xs text-[#A7B4CC] mr-2 shrink-0 flex items-center gap-1">
-          <Filter className="w-3.5 h-3.5" />
-          <span>Status:</span>
-        </span>
-        {(['all', 'pending', 'approved', 'rejected'] as const).map((s) => (
+      {/* Filter Tabs */}
+      <div className="flex items-center gap-1.5 p-1.5 rounded-xl bg-[#0c142b] border border-white/5 w-fit">
+        {(['all', 'pending', 'approved', 'rejected'] as const).map((tab) => (
           <button
-            key={s}
-            onClick={() => setStatusFilter(s)}
-            className={`px-3 py-1.5 rounded-lg text-xs font-medium capitalize transition-colors ${
-              statusFilter === s
-                ? 'bg-violet-500/20 text-violet-300 border border-violet-500/30'
-                : 'text-[#A7B4CC] hover:text-[#F1F5F9] hover:bg-white/5'
+            key={tab}
+            onClick={() => setStatusFilter(tab)}
+            className={`px-3.5 py-1.5 rounded-lg text-xs font-semibold capitalize transition-all ${
+              statusFilter === tab
+                ? 'bg-gradient-to-r from-cyan-500/20 to-blue-500/20 text-cyan-300 border border-cyan-500/30'
+                : 'text-slate-400 hover:text-white'
             }`}
           >
-            {s}
+            {tab}
           </button>
         ))}
       </div>
 
-      {/* Approvals Table */}
-      <div className="rounded-2xl bg-[#10182B] border border-white/5 p-6">
+      {/* Main Table Card */}
+      <div className="dash-card dash-card-glow p-6">
         {errorMsg && <ErrorBanner message={errorMsg} onRetry={loadData} />}
 
         {isLoading ? (
           <LoadingSkeleton rows={5} />
         ) : filteredApprovals.length === 0 ? (
           <EmptyState
-            title="No AI approvals found"
-            description={
-              statusFilter !== 'all'
-                ? `No follow-up recommendations currently marked as "${statusFilter}".`
-                : 'No pending AI follow-up requests. Trigger the agent or create a recommendation.'
-            }
-            action={{
-              label: 'Trigger Agent Check',
-              onClick: handleTriggerFollowupAgent,
-            }}
+            title="No approval records"
+            description="No AI recommendations match this filter criteria."
           />
         ) : (
           <div className="overflow-x-auto">
-            <table className="w-full text-left border-collapse">
+            <table className="w-full text-left text-xs">
               <thead>
-                <tr className="border-b border-white/5 text-[11px] font-semibold text-[#A7B4CC] uppercase tracking-wider">
-                  <th className="py-3 px-4">Approval ID / Ticket</th>
-                  <th className="py-3 px-4">Action</th>
-                  <th className="py-3 px-4">AI Reasoning</th>
-                  <th className="py-3 px-4">Status</th>
-                  <th className="py-3 px-4">Created</th>
-                  <th className="py-3 px-4 text-right">Review Action</th>
+                <tr className="border-b border-white/[0.06] text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+                  <th className="pb-3 pr-4">Case / Recommendation</th>
+                  <th className="pb-3 px-4">Action</th>
+                  <th className="pb-3 px-4">AI Reason & Context</th>
+                  <th className="pb-3 px-4">Status</th>
+                  <th className="pb-3 px-4">Generated</th>
+                  <th className="pb-3 pl-4 text-right">Review Decision</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-white/5 text-xs text-[#F1F5F9]">
+              <tbody className="divide-y divide-white/[0.04]">
                 {filteredApprovals.map((item) => {
                   const comp = getAssociatedComplaint(item.complaint_id);
                   const isPending = item.status === 'pending';
 
                   return (
                     <tr key={item.id} className="hover:bg-white/[0.02] transition-colors">
-                      <td className="py-3 px-4">
-                        <div className="font-semibold text-slate-100 font-mono">
-                          #{item.id.slice(0, 8)}
-                        </div>
-                        <div className="text-[11px] text-[#A7B4CC] truncate max-w-xs mt-0.5">
-                          {comp ? comp.title : `Ticket: ${item.complaint_id.slice(0, 8)}...`}
+                      <td className="py-3.5 pr-4 font-mono font-medium text-cyan-400">
+                        #{item.id.slice(0, 8)}
+                        <div className="text-[11px] font-sans text-white font-semibold truncate max-w-xs mt-0.5">
+                          {comp ? comp.title : `Ticket: ${item.complaint_id.slice(0, 8)}`}
                         </div>
                       </td>
-                      <td className="py-3 px-4">
+                      <td className="py-3.5 px-4">
                         <span
-                          className={`text-xs font-semibold uppercase tracking-wider ${
+                          className={`text-xs font-bold uppercase tracking-wider px-2.5 py-0.5 rounded-full border ${
                             item.recommended_action === 'escalate'
-                              ? 'text-rose-400'
+                              ? 'bg-rose-500/10 border-rose-500/25 text-rose-300'
                               : item.recommended_action === 'remind'
-                              ? 'text-amber-400'
-                              : 'text-slate-400'
+                              ? 'bg-amber-500/10 border-amber-500/25 text-amber-300'
+                              : 'bg-slate-500/10 border-slate-500/20 text-slate-300'
                           }`}
                         >
                           {item.recommended_action}
                         </span>
                       </td>
-                      <td className="py-3 px-4 max-w-sm">
-                        <p className="text-xs text-[#A7B4CC] line-clamp-2 leading-relaxed">
+                      <td className="py-3.5 px-4 max-w-sm">
+                        <p className="text-xs text-slate-300 line-clamp-2 leading-relaxed">
                           {item.reason}
                         </p>
                       </td>
-                      <td className="py-3 px-4">
+                      <td className="py-3.5 px-4">
                         <span
-                          className={`inline-flex items-center gap-1.5 text-xs font-medium ${
+                          className={`inline-flex items-center gap-1.5 text-xs font-semibold capitalize px-2.5 py-0.5 rounded-full border ${
                             item.status === 'approved'
-                              ? 'text-emerald-400'
+                              ? 'bg-emerald-500/10 border-emerald-500/25 text-emerald-300'
                               : item.status === 'rejected'
-                              ? 'text-rose-400'
-                              : 'text-amber-400'
+                              ? 'bg-rose-500/10 border-rose-500/25 text-rose-300'
+                              : 'bg-amber-500/10 border-amber-500/25 text-amber-300'
                           }`}
                         >
                           <span
@@ -308,17 +334,17 @@ export const FollowupApprovalsPage: React.FC = () => {
                                 : 'bg-amber-400'
                             }`}
                           />
-                          <span className="capitalize">{item.status}</span>
+                          <span>{item.status}</span>
                         </span>
                       </td>
-                      <td className="py-3 px-4 text-[#A7B4CC] tabular-nums whitespace-nowrap">
+                      <td className="py-3.5 px-4 text-slate-400 tabular-nums whitespace-nowrap">
                         {new Date(item.created_at).toLocaleDateString()}
                       </td>
-                      <td className="py-3 px-4 text-right">
-                        <div className="inline-flex items-center gap-2 justify-end">
+                      <td className="py-3.5 pl-4 text-right">
+                        <div className="inline-flex items-center gap-1.5 justify-end">
                           <button
                             onClick={() => setActiveApproval(item)}
-                            className="p-1.5 rounded-lg bg-[#151F35] hover:bg-[#1C2942] text-[#A7B4CC] hover:text-[#F1F5F9] transition-colors border border-white/5"
+                            className="p-1.5 rounded-lg bg-[#14203e] hover:bg-[#1b2b52] text-slate-300 hover:text-white transition-colors border border-white/5"
                             title="Inspect complete recommendation"
                           >
                             <Eye className="w-3.5 h-3.5" />
@@ -328,13 +354,13 @@ export const FollowupApprovalsPage: React.FC = () => {
                             <>
                               <button
                                 onClick={() => handleOpenReview(item, 'rejected')}
-                                className="px-2.5 py-1 rounded-lg bg-rose-500/10 hover:bg-rose-500/20 text-rose-300 font-medium text-xs transition-colors border border-rose-500/20"
+                                className="px-2.5 py-1 rounded-lg bg-rose-500/10 hover:bg-rose-500/20 text-rose-300 font-semibold text-xs transition-colors border border-rose-500/20"
                               >
                                 Reject
                               </button>
                               <button
                                 onClick={() => handleOpenReview(item, 'approved')}
-                                className="px-2.5 py-1 rounded-lg bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-300 font-medium text-xs transition-colors border border-emerald-500/20"
+                                className="px-2.5 py-1 rounded-lg bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-300 font-semibold text-xs transition-colors border border-emerald-500/20"
                               >
                                 Approve
                               </button>
@@ -351,168 +377,152 @@ export const FollowupApprovalsPage: React.FC = () => {
         )}
       </div>
 
-      {/* Inspect Approval Detail Modal */}
-      {activeApproval && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-xs">
-          <div className="w-full max-w-lg rounded-2xl bg-[#151F35] border border-white/10 p-6 shadow-2xl relative">
-            <button
-              onClick={() => setActiveApproval(null)}
-              className="absolute top-4 right-4 text-slate-400 hover:text-white"
+      {/* Manual Create Modal */}
+      <AnimatePresence>
+        {isCreateModalOpen && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 15 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 15 }}
+              className="dash-card dash-card-glow max-w-lg w-full p-6 sm:p-7 space-y-5"
             >
-              <X className="w-5 h-5" />
-            </button>
-
-            <div className="flex items-center gap-2 mb-2">
-              <Sparkles className="w-4 h-4 text-violet-400" />
-              <span className="text-xs font-mono text-cyan-400">
-                #{activeApproval.id}
-              </span>
-              <span
-                className={`text-xs font-semibold uppercase px-2 py-0.5 rounded border ${
-                  activeApproval.status === 'approved'
-                    ? 'border-emerald-500/30 text-emerald-300 bg-emerald-500/10'
-                    : activeApproval.status === 'rejected'
-                    ? 'border-rose-500/30 text-rose-300 bg-rose-500/10'
-                    : 'border-amber-500/30 text-amber-300 bg-amber-500/10'
-                }`}
-              >
-                {activeApproval.status}
-              </span>
-            </div>
-
-            <h3 className="text-base font-bold text-[#F1F5F9] mb-1">
-              Recommended Action: {activeApproval.recommended_action.toUpperCase()}
-            </h3>
-
-            <div className="mt-4 p-4 rounded-xl bg-[#10182B] border border-white/5 space-y-2 text-xs">
-              <span className="text-[#A7B4CC] block font-semibold">AI Reasoning:</span>
-              <p className="text-[#F1F5F9] leading-relaxed whitespace-pre-wrap">{activeApproval.reason}</p>
-            </div>
-
-            <div className="mt-4 p-3.5 rounded-xl bg-[#10182B] border border-white/5 space-y-1.5 text-xs text-[#A7B4CC]">
-              <div>Complaint UUID: <span className="font-mono text-cyan-300">{activeApproval.complaint_id}</span></div>
-              <div>Created: <span className="tabular-nums">{new Date(activeApproval.created_at).toLocaleString()}</span></div>
-              {activeApproval.reviewed_at && (
-                <div>Reviewed At: <span className="tabular-nums">{new Date(activeApproval.reviewed_at).toLocaleString()}</span></div>
-              )}
-            </div>
-
-            {activeApproval.status === 'pending' && (
-              <div className="mt-6 flex items-center justify-end gap-3 pt-3 border-t border-white/5">
-                <button
-                  onClick={() => handleOpenReview(activeApproval, 'rejected')}
-                  className="px-4 py-2 text-xs font-medium text-rose-300 bg-rose-500/10 hover:bg-rose-500/20 border border-rose-500/20 rounded-lg"
-                >
-                  Reject Action
-                </button>
-                <button
-                  onClick={() => handleOpenReview(activeApproval, 'approved')}
-                  className="px-4 py-2 text-xs font-medium text-emerald-300 bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/20 rounded-lg"
-                >
-                  Approve Action
+              <div className="flex items-center justify-between pb-3 border-b border-white/[0.06]">
+                <h3 className="text-sm font-bold text-white">Create Follow-up Recommendation</h3>
+                <button onClick={() => setIsCreateModalOpen(false)} className="text-slate-400 hover:text-white">
+                  <X className="w-4 h-4" />
                 </button>
               </div>
-            )}
+
+              <form onSubmit={handleCreateApprovalSubmit} className="space-y-4">
+                <div>
+                  <label className="block text-xs font-medium text-slate-300 mb-1.5">
+                    Target Complaint
+                  </label>
+                  <select
+                    value={selectedComplaintId}
+                    onChange={(e) => setSelectedComplaintId(e.target.value)}
+                    required
+                    className="w-full bg-[#0c142b] border border-white/10 rounded-xl px-3 py-2.5 text-xs text-white focus:outline-hidden focus:border-cyan-400/60 transition-all"
+                  >
+                    <option value="" disabled>Select complaint ticket</option>
+                    {complaints.map((c) => (
+                      <option key={c.id} value={c.id} className="bg-[#0b1328]">
+                        #{c.id.slice(0, 8)} - {c.title}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-medium text-slate-300 mb-1.5">
+                    Recommended Action
+                  </label>
+                  <select
+                    value={recommendedAction}
+                    onChange={(e) => setRecommendedAction(e.target.value as RecommendedAction)}
+                    className="w-full bg-[#0c142b] border border-white/10 rounded-xl px-3 py-2.5 text-xs text-white focus:outline-hidden focus:border-cyan-400/60 transition-all"
+                  >
+                    <option value="remind" className="bg-[#0b1328]">Remind (Ping technician for status)</option>
+                    <option value="escalate" className="bg-[#0b1328]">Escalate (Raise urgency priority)</option>
+                    <option value="none" className="bg-[#0b1328]">None</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-medium text-slate-300 mb-1.5">
+                    Reasoning & Audited Context
+                  </label>
+                  <textarea
+                    rows={3}
+                    value={reason}
+                    onChange={(e) => setReason(e.target.value)}
+                    required
+                    placeholder="Provide justification for this follow-up action..."
+                    className="w-full bg-[#0c142b] border border-white/10 rounded-xl p-3 text-xs text-white placeholder:text-slate-500 focus:outline-hidden focus:border-cyan-400/60 transition-all"
+                  />
+                </div>
+
+                <div className="pt-2 flex items-center justify-end gap-3 border-t border-white/[0.06]">
+                  <button
+                    type="button"
+                    onClick={() => setIsCreateModalOpen(false)}
+                    className="px-4 py-2 text-xs font-medium text-slate-300 hover:text-white"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={isCreating}
+                    className="px-4 py-2.5 rounded-xl bg-cyan-400 hover:bg-cyan-300 text-[#090e21] font-semibold text-xs transition-colors shadow-md disabled:opacity-50"
+                  >
+                    {isCreating ? 'Submitting...' : 'Queue Recommendation'}
+                  </button>
+                </div>
+              </form>
+            </motion.div>
           </div>
-        </div>
-      )}
+        )}
+      </AnimatePresence>
 
-      {/* Manual Create Approval Request Modal */}
-      {isCreateModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-xs">
-          <div className="w-full max-w-md rounded-2xl bg-[#151F35] border border-white/10 p-6 shadow-2xl relative">
-            <button
-              onClick={() => setIsCreateModalOpen(false)}
-              className="absolute top-4 right-4 text-slate-400 hover:text-white"
-            >
-              <X className="w-5 h-5" />
-            </button>
-
-            <h3 className="text-base font-semibold text-[#F1F5F9] mb-4">
-              Create Follow-up Approval Request
-            </h3>
-
-            <form onSubmit={handleCreateApproval} className="space-y-4">
-              <div>
-                <label className="block text-xs font-medium text-[#A7B4CC] mb-1.5">
-                  Target Complaint
-                </label>
-                <select
-                  required
-                  value={selectedComplaintId}
-                  onChange={(e) => setSelectedComplaintId(e.target.value)}
-                  className="w-full bg-[#10182B] border border-white/10 rounded-xl px-3 py-2 text-xs sm:text-sm text-[#F1F5F9] focus:outline-hidden focus:border-cyan-400"
-                >
-                  <option value="" disabled>Select a complaint</option>
-                  {complaints.map((c) => (
-                    <option key={c.id} value={c.id}>
-                      #{c.id.slice(0, 8)} - {c.title.slice(0, 35)}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-xs font-medium text-[#A7B4CC] mb-1.5">
-                  Recommended Action
-                </label>
-                <select
-                  value={recommendedAction}
-                  onChange={(e) => setRecommendedAction(e.target.value as RecommendedAction)}
-                  className="w-full bg-[#10182B] border border-white/10 rounded-xl px-3 py-2 text-xs sm:text-sm text-[#F1F5F9] focus:outline-hidden focus:border-cyan-400"
-                >
-                  <option value="remind">Remind (Department Reminder)</option>
-                  <option value="escalate">Escalate (Elevate to Urgent Supervision)</option>
-                  <option value="none">None (Audited Oversight)</option>
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-xs font-medium text-[#A7B4CC] mb-1.5">
-                  Reason for Recommendation
-                </label>
-                <textarea
-                  required
-                  rows={4}
-                  value={reason}
-                  onChange={(e) => setReason(e.target.value)}
-                  placeholder="e.g. Complaint has remained unaddressed for over 72 hours despite urgent priority flag."
-                  className="w-full bg-[#10182B] border border-white/10 rounded-xl p-3 text-xs sm:text-sm text-[#F1F5F9] focus:outline-hidden focus:border-cyan-400 resize-y"
-                />
-              </div>
-
-              <div className="flex items-center justify-end gap-3 pt-3 border-t border-white/5">
-                <button
-                  type="button"
-                  onClick={() => setIsCreateModalOpen(false)}
-                  className="px-3 py-2 text-xs font-medium text-[#A7B4CC] hover:text-[#F1F5F9]"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  disabled={isCreating}
-                  className="px-4 py-2 text-xs font-semibold rounded-lg bg-[#22D3EE] hover:bg-[#67e8f9] text-[#080D1B] disabled:opacity-50"
-                >
-                  {isCreating ? 'Recording...' : 'Create Approval Request'}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
-
-      {/* Review Confirmation Modal */}
+      {/* Decision Confirmation Modal */}
       <ConfirmModal
         isOpen={!!reviewingApproval}
-        title={`${decision === 'approved' ? 'Approve' : 'Reject'} AI Recommendation?`}
-        message={`Are you sure you want to mark recommendation #${reviewingApproval?.id.slice(0, 8)} (${reviewingApproval?.recommended_action.toUpperCase()}) as ${decision}? This updates the approval record in the database.`}
-        confirmLabel={`Confirm ${decision}`}
+        title={decision === 'approved' ? 'Approve AI Recommendation' : 'Reject AI Recommendation'}
+        message={`Are you sure you want to mark this recommendation as ${decision}? Action: "${reviewingApproval?.recommended_action}". Reason: "${reviewingApproval?.reason}"`}
+        confirmLabel={isSubmittingDecision ? 'Submitting...' : `Confirm ${decision === 'approved' ? 'Approval' : 'Rejection'}`}
         isDestructive={decision === 'rejected'}
-        isLoading={isSubmittingDecision}
-        onConfirm={handleConfirmReview}
+        onConfirm={handleConfirmDecision}
         onCancel={() => setReviewingApproval(null)}
       />
+
+      {/* Inspect Detail Modal */}
+      <AnimatePresence>
+        {activeApproval && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              className="dash-card dash-card-glow max-w-lg w-full p-6 sm:p-7 space-y-4"
+            >
+              <div className="flex items-center justify-between pb-3 border-b border-white/[0.06]">
+                <div className="flex items-center gap-2">
+                  <Sparkles className="w-4 h-4 text-cyan-400" />
+                  <span className="font-mono text-xs font-bold text-white">#{activeApproval.id.slice(0, 8)}</span>
+                </div>
+                <button onClick={() => setActiveApproval(null)} className="text-slate-400 hover:text-white">
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+
+              <div className="space-y-3">
+                <div className="flex items-center justify-between text-xs">
+                  <span className="text-slate-400">Proposed Action</span>
+                  <span className="font-bold uppercase text-cyan-300">{activeApproval.recommended_action}</span>
+                </div>
+                <div className="flex items-center justify-between text-xs">
+                  <span className="text-slate-400">Status</span>
+                  <span className="font-semibold capitalize text-white">{activeApproval.status}</span>
+                </div>
+                <div className="p-3.5 rounded-xl bg-[#0c142b] border border-white/5 space-y-1">
+                  <span className="text-[10px] text-slate-400 uppercase font-bold tracking-wider">AI Reasoning</span>
+                  <p className="text-xs text-slate-200 leading-relaxed">{activeApproval.reason}</p>
+                </div>
+              </div>
+
+              <div className="pt-3 border-t border-white/[0.06] flex items-center justify-end">
+                <button
+                  onClick={() => setActiveApproval(null)}
+                  className="px-4 py-2 rounded-xl bg-white/10 hover:bg-white/15 text-white text-xs font-medium"
+                >
+                  Close
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </div>
   );
 };

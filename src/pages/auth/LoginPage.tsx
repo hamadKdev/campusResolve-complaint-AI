@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import { motion } from 'motion/react';
 import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../context/ToastContext';
 import { formatApiErrorMessage } from '../../services/apiClient';
@@ -12,6 +13,10 @@ import {
   EyeOff,
   ArrowRight,
   AlertCircle,
+  Sparkles,
+  Server,
+  Cpu,
+  CheckCircle2,
 } from 'lucide-react';
 
 export const LoginPage: React.FC = () => {
@@ -69,33 +74,45 @@ export const LoginPage: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-[#080D1B] flex flex-col justify-center selection:bg-cyan-500/20 selection:text-cyan-300">
-      <div className="max-w-6xl w-full mx-auto p-4 sm:p-6 lg:p-8">
-        <div className="grid grid-cols-1 lg:grid-cols-12 rounded-3xl overflow-hidden bg-[#10182B] border border-white/10 shadow-2xl">
+    <div className="min-h-screen bg-[#090e21] flex flex-col justify-center selection:bg-cyan-500/20 selection:text-cyan-300 relative overflow-hidden py-8">
+      {/* Ambient Radial Glows */}
+      <div className="absolute top-1/4 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[700px] h-[450px] bg-cyan-500/10 blur-[130px] rounded-full pointer-events-none" />
+      <div className="absolute bottom-10 right-10 w-[500px] h-[350px] bg-blue-600/10 blur-[120px] rounded-full pointer-events-none" />
+
+      <div className="max-w-5xl w-full mx-auto px-4 sm:px-6 relative z-10">
+        <motion.div
+          initial={{ opacity: 0, scale: 0.98, y: 15 }}
+          animate={{ opacity: 1, scale: 1, y: 0 }}
+          transition={{ duration: 0.3 }}
+          className="grid grid-cols-1 lg:grid-cols-12 rounded-3xl overflow-hidden dash-card dash-card-glow shadow-2xl border border-white/10"
+        >
           {/* Left Column: Form */}
-          <div className="lg:col-span-6 p-8 sm:p-12 flex flex-col justify-between">
+          <div className="lg:col-span-6 p-8 sm:p-12 flex flex-col justify-between bg-[#0e162f]/80">
             <div>
-              {/* Header */}
-              <Link to="/" className="inline-flex items-center gap-2.5 mb-8 group">
-                <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-cyan-400 to-violet-600 flex items-center justify-center p-0.5">
-                  <div className="w-full h-full bg-[#080D1B] rounded-[6px] flex items-center justify-center">
-                    <ShieldCheck className="w-4 h-4 text-cyan-400 group-hover:scale-110 transition-transform" />
+              {/* Brand Header */}
+              <Link to="/" className="inline-flex items-center gap-3 mb-8 group">
+                <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-cyan-400 via-blue-500 to-indigo-600 flex items-center justify-center p-0.5 shadow-md shadow-cyan-500/20">
+                  <div className="w-full h-full bg-[#090e21] rounded-[10px] flex items-center justify-center">
+                    <ShieldCheck className="w-5 h-5 text-cyan-400 group-hover:scale-110 transition-transform" />
                   </div>
                 </div>
-                <span className="text-base font-bold tracking-tight text-[#F1F5F9]">
-                  CampusResolve <span className="text-cyan-400">AI</span>
-                </span>
+                <div className="flex flex-col">
+                  <span className="text-base font-bold tracking-tight text-white flex items-center gap-1">
+                    CampusResolve <span className="text-cyan-400">AI</span>
+                  </span>
+                  <span className="text-[10px] text-[#617498] font-mono">University Operations</span>
+                </div>
               </Link>
 
-              <h1 className="text-2xl sm:text-3xl font-bold text-[#F1F5F9] tracking-tight">
+              <h1 className="text-2xl sm:text-3xl font-bold text-white tracking-tight">
                 Sign in to your account
               </h1>
-              <p className="text-xs sm:text-sm text-[#A7B4CC] mt-2">
-                Enter your university credentials to access real-time complaint tracking and operations.
+              <p className="text-xs sm:text-sm text-[#8c9fc2] mt-2 leading-relaxed">
+                Enter your university credentials to access live complaint tracking, operations dispatch, and audit logs.
               </p>
 
               {errorMessage && (
-                <div className="mt-6 p-4 rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-300 text-xs flex items-start gap-3">
+                <div className="mt-5 p-4 rounded-xl bg-rose-500/10 border border-rose-500/25 text-rose-300 text-xs flex items-start gap-3">
                   <AlertCircle className="w-4 h-4 shrink-0 mt-0.5 text-rose-400" />
                   <div className="leading-relaxed">{errorMessage}</div>
                 </div>
@@ -104,11 +121,11 @@ export const LoginPage: React.FC = () => {
               {/* Login Form */}
               <form onSubmit={handleSubmit} className="mt-6 space-y-4">
                 <div>
-                  <label className="block text-xs font-medium text-[#A7B4CC] mb-1.5" htmlFor="email">
+                  <label className="block text-xs font-semibold text-[#8c9fc2] mb-1.5" htmlFor="email">
                     University Email Address
                   </label>
                   <div className="relative">
-                    <Mail className="w-4 h-4 text-[#A7B4CC] absolute left-3.5 top-1/2 -translate-y-1/2" />
+                    <Mail className="w-4 h-4 text-[#617498] absolute left-3.5 top-1/2 -translate-y-1/2" />
                     <input
                       id="email"
                       type="email"
@@ -116,19 +133,19 @@ export const LoginPage: React.FC = () => {
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
                       placeholder="name@university.edu"
-                      className="w-full bg-[#151F35] border border-white/10 rounded-xl px-10 py-2.5 text-xs sm:text-sm text-[#F1F5F9] placeholder:text-[#A7B4CC]/40 focus:outline-hidden focus:border-cyan-400/60 focus:ring-1 focus:ring-cyan-400/30 transition-all"
+                      className="w-full bg-[#090e21]/80 border border-white/10 rounded-xl px-10 py-2.5 text-xs sm:text-sm text-white placeholder:text-[#617498] focus:outline-hidden focus:border-cyan-400/60 focus:ring-1 focus:ring-cyan-400/30 transition-all"
                     />
                   </div>
                 </div>
 
                 <div>
                   <div className="flex items-center justify-between mb-1.5">
-                    <label className="block text-xs font-medium text-[#A7B4CC]" htmlFor="password">
+                    <label className="block text-xs font-semibold text-[#8c9fc2]" htmlFor="password">
                       Password
                     </label>
                   </div>
                   <div className="relative">
-                    <Lock className="w-4 h-4 text-[#A7B4CC] absolute left-3.5 top-1/2 -translate-y-1/2" />
+                    <Lock className="w-4 h-4 text-[#617498] absolute left-3.5 top-1/2 -translate-y-1/2" />
                     <input
                       id="password"
                       type={showPassword ? 'text' : 'password'}
@@ -136,12 +153,12 @@ export const LoginPage: React.FC = () => {
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
                       placeholder="••••••••••••"
-                      className="w-full bg-[#151F35] border border-white/10 rounded-xl pl-10 pr-10 py-2.5 text-xs sm:text-sm text-[#F1F5F9] placeholder:text-[#A7B4CC]/40 focus:outline-hidden focus:border-cyan-400/60 focus:ring-1 focus:ring-cyan-400/30 transition-all"
+                      className="w-full bg-[#090e21]/80 border border-white/10 rounded-xl pl-10 pr-10 py-2.5 text-xs sm:text-sm text-white placeholder:text-[#617498] focus:outline-hidden focus:border-cyan-400/60 focus:ring-1 focus:ring-cyan-400/30 transition-all"
                     />
                     <button
                       type="button"
                       onClick={() => setShowPassword(!showPassword)}
-                      className="absolute right-3.5 top-1/2 -translate-y-1/2 text-[#A7B4CC] hover:text-[#F1F5F9] transition-colors p-1"
+                      className="absolute right-3.5 top-1/2 -translate-y-1/2 text-[#617498] hover:text-white transition-colors p-1"
                       aria-label={showPassword ? 'Hide password' : 'Show password'}
                     >
                       {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
@@ -152,13 +169,13 @@ export const LoginPage: React.FC = () => {
                 <button
                   type="submit"
                   disabled={isLoading}
-                  className="w-full mt-2 py-3 px-4 rounded-xl bg-[#22D3EE] hover:bg-[#67e8f9] text-[#080D1B] font-semibold text-xs sm:text-sm transition-all shadow-md shadow-cyan-500/20 inline-flex items-center justify-center gap-2 disabled:opacity-50"
+                  className="w-full mt-3 py-3 px-4 rounded-xl bg-gradient-to-r from-cyan-400 to-blue-500 hover:from-cyan-300 hover:to-blue-400 text-[#090e21] font-bold text-xs sm:text-sm transition-all shadow-lg shadow-cyan-500/20 active:scale-[0.99] inline-flex items-center justify-center gap-2 disabled:opacity-50"
                 >
                   {isLoading ? (
-                    <span className="w-4 h-4 border-2 border-[#080D1B] border-t-transparent rounded-full animate-spin" />
+                    <span className="w-4 h-4 border-2 border-[#090e21] border-t-transparent rounded-full animate-spin" />
                   ) : (
                     <>
-                      <span>Sign In</span>
+                      <span>Sign In to Console</span>
                       <ArrowRight className="w-4 h-4" />
                     </>
                   )}
@@ -166,60 +183,70 @@ export const LoginPage: React.FC = () => {
               </form>
 
               <div className="mt-6 text-center">
-                <p className="text-xs text-[#A7B4CC]">
-                  New to CampusResolve?{' '}
-                  <Link to="/signup" className="text-cyan-400 hover:text-cyan-300 font-medium">
-                    Register as Student
+                <p className="text-xs text-[#8c9fc2]">
+                  New student?{' '}
+                  <Link to="/signup" className="text-cyan-400 hover:text-cyan-300 font-semibold underline underline-offset-2">
+                    Create Student Account
                   </Link>
                 </p>
               </div>
             </div>
 
             <div className="mt-8 pt-6 border-t border-white/5">
-              <p className="text-[11px] text-[#A7B4CC] text-center">
-                Role authorization is determined strictly by the central university database.
+              <p className="text-[11px] text-[#617498] text-center leading-relaxed font-mono">
+                Centralized database role resolution · Zero mock credentials
               </p>
             </div>
           </div>
 
           {/* Right Column: Visual Showcase */}
-          <div className="lg:col-span-6 relative hidden lg:flex flex-col justify-between p-12 bg-[#151F35] overflow-hidden">
+          <div className="lg:col-span-6 relative hidden lg:flex flex-col justify-between p-12 bg-[#121c38] overflow-hidden border-l border-white/5">
             <img
               src={heroImage}
               alt="Campus Operations"
-              className="absolute inset-0 w-full h-full object-cover opacity-35"
+              className="absolute inset-0 w-full h-full object-cover opacity-25"
               referrerPolicy="no-referrer"
             />
-            <div className="absolute inset-0 bg-gradient-to-t from-[#10182B] via-[#10182B]/60 to-transparent" />
+            <div className="absolute inset-0 bg-gradient-to-t from-[#0e162f] via-[#121c38]/80 to-transparent" />
 
             <div className="relative z-10 space-y-4">
-              <span className="text-[11px] font-bold tracking-widest uppercase text-cyan-400">
-                Agentic Architecture
+              <span className="text-[11px] font-bold tracking-widest uppercase text-cyan-400 flex items-center gap-1.5">
+                <Sparkles className="w-3.5 h-3.5" />
+                <span>Enterprise Dashboard</span>
               </span>
-              <h2 className="text-2xl font-bold text-[#F1F5F9] leading-snug">
-                Transparent Resolution Infrastructure
+              <h2 className="text-2xl font-bold text-white leading-snug">
+                Verified Accountability & Real-Time Resolution
               </h2>
-              <p className="text-xs text-[#A7B4CC] leading-relaxed max-w-sm">
-                Real-time connection to backend API at <code className="text-cyan-300">university-complain-system.vercel.app</code>. Role-based authorization enforced on every endpoint.
+              <p className="text-xs text-[#8c9fc2] leading-relaxed max-w-sm">
+                CampusResolve AI coordinates autonomous triage, department dispatch, technician resolution logs, and executive approvals on a unified system.
               </p>
             </div>
 
-            <div className="relative z-10 p-5 rounded-2xl bg-[#080D1B]/80 backdrop-blur-md border border-white/10 space-y-2">
+            <div className="relative z-10 p-5 rounded-2xl bg-[#090e21]/80 backdrop-blur-md border border-white/10 space-y-3">
               <div className="flex items-center justify-between text-xs">
-                <span className="text-[#A7B4CC]">API Status</span>
-                <span className="text-emerald-400 font-semibold">Live Production</span>
+                <span className="text-[#8c9fc2] flex items-center gap-1.5">
+                  <Server className="w-3.5 h-3.5 text-cyan-400" />
+                  <span>Production Backend</span>
+                </span>
+                <span className="text-emerald-400 font-semibold font-mono">Live</span>
               </div>
               <div className="flex items-center justify-between text-xs">
-                <span className="text-[#A7B4CC]">Follow-up Agent</span>
-                <span className="text-cyan-400 font-semibold">n8n Connected</span>
+                <span className="text-[#8c9fc2] flex items-center gap-1.5">
+                  <Cpu className="w-3.5 h-3.5 text-violet-400" />
+                  <span>Autonomous AI Triage</span>
+                </span>
+                <span className="text-cyan-400 font-semibold font-mono">Connected</span>
               </div>
               <div className="flex items-center justify-between text-xs">
-                <span className="text-[#A7B4CC]">Human Approvals</span>
-                <span className="text-violet-400 font-semibold">Enforced</span>
+                <span className="text-[#8c9fc2] flex items-center gap-1.5">
+                  <CheckCircle2 className="w-3.5 h-3.5 text-amber-400" />
+                  <span>Human Verification</span>
+                </span>
+                <span className="text-amber-300 font-semibold font-mono">Enforced</span>
               </div>
             </div>
           </div>
-        </div>
+        </motion.div>
       </div>
     </div>
   );

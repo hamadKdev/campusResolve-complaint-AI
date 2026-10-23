@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import { motion } from 'motion/react';
 import { Navbar } from '../components/layout/Navbar';
 import { useAuth } from '../context/AuthContext';
 import heroImage from '../assets/images/campus_ops_hero_1791972571268.jpg';
@@ -19,6 +20,7 @@ import {
   ChevronRight,
   Cpu,
   Lock,
+  Zap,
 } from 'lucide-react';
 
 export const LandingPage: React.FC = () => {
@@ -44,7 +46,7 @@ export const LandingPage: React.FC = () => {
     {
       num: '02',
       title: 'Agentic AI Triage',
-      desc: 'n8n AI agent analyzes urgency, categorizes incident type, and suggests department assignment.',
+      desc: 'Autonomous AI analyzes urgency, categorizes incident type, and suggests department assignment.',
       badge: 'Automated Classification',
       detail: 'Confidence scoring and urgency analysis without black-box override.',
     },
@@ -131,44 +133,72 @@ export const LandingPage: React.FC = () => {
   ];
 
   return (
-    <div className="min-h-screen bg-[#080D1B] text-[#F1F5F9] selection:bg-cyan-500/20 selection:text-cyan-300">
+    <div className="min-h-screen bg-[#090e21] text-[#c4d1e6] selection:bg-cyan-500/20 selection:text-cyan-300 relative overflow-hidden">
+      {/* Background Radial Washes */}
+      <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[1000px] h-[500px] bg-cyan-500/10 blur-[150px] rounded-full pointer-events-none" />
+      <div className="absolute top-[800px] right-0 w-[600px] h-[400px] bg-blue-600/10 blur-[140px] rounded-full pointer-events-none" />
+
       <Navbar />
 
       {/* Hero Section */}
-      <section className="relative pt-12 pb-20 md:pt-20 md:pb-32 overflow-hidden border-b border-white/5">
-        <div className="max-w-7xl mx-auto px-6">
+      <section className="relative pt-12 pb-20 md:pt-20 md:pb-28 overflow-hidden border-b border-white/5">
+        <div className="max-w-7xl mx-auto px-6 relative z-10">
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
             {/* Left Column: Headline and Pitch */}
             <div className="lg:col-span-7 space-y-6">
-              <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-[#10182B] border border-cyan-500/20 text-xs text-cyan-300 font-medium">
+              <motion.div
+                initial={{ opacity: 0, y: -8 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-cyan-500/10 border border-cyan-500/25 text-xs text-cyan-300 font-medium shadow-sm shadow-cyan-500/10"
+              >
                 <Sparkles className="w-3.5 h-3.5 text-cyan-400" />
-                <span>Next-Generation University Operations</span>
-              </div>
+                <span>Next-Generation Campus Intelligence & Operations</span>
+              </motion.div>
 
-              <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tight text-[#F1F5F9] leading-[1.1] text-balance">
+              <motion.h1
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.1 }}
+                className="text-4xl sm:text-5xl lg:text-6xl font-extrabold tracking-tight text-white leading-[1.1] text-balance"
+              >
                 Your Campus. <br />
-                <span className="text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 via-sky-300 to-violet-400">
+                <span className="text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 via-sky-300 to-indigo-400">
                   Connected. Resolved.
                 </span>
-              </h1>
+              </motion.h1>
 
-              <p className="text-base sm:text-lg text-[#A7B4CC] leading-relaxed max-w-2xl">
+              <motion.p
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.2 }}
+                className="text-base sm:text-lg text-[#8c9fc2] leading-relaxed max-w-2xl"
+              >
                 An AI-powered university complaint management platform that transforms scattered grievances
                 into transparent, accountable resolutions with verified department routing and
                 human-in-the-loop oversight.
-              </p>
+              </motion.p>
 
-              {/* Tagline quote block */}
-              <div className="p-4 rounded-xl bg-[#10182B]/80 border border-white/5 text-xs text-[#A7B4CC] italic">
+              {/* Tagline block */}
+              <motion.div
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.25 }}
+                className="p-4 rounded-xl bg-[#121c38]/60 border border-white/10 text-xs text-[#8c9fc2] italic"
+              >
                 “Every issue seen. Every action tracked. Every resolution accountable.”
-              </div>
+              </motion.div>
 
               {/* Action buttons */}
-              <div className="flex flex-wrap items-center gap-4 pt-2">
+              <motion.div
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.3 }}
+                className="flex flex-wrap items-center gap-4 pt-2"
+              >
                 {isAuthenticated ? (
                   <Link
                     to={getDashboardPath()}
-                    className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-[#22D3EE] hover:bg-[#67e8f9] text-[#080D1B] font-semibold text-sm transition-all shadow-lg shadow-cyan-500/25"
+                    className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-gradient-to-r from-cyan-400 to-blue-500 hover:from-cyan-300 hover:to-blue-400 text-[#090e21] font-bold text-sm transition-all shadow-lg shadow-cyan-500/25 active:scale-95"
                   >
                     <span>Open Your Dashboard</span>
                     <ArrowRight className="w-4 h-4" />
@@ -177,58 +207,63 @@ export const LandingPage: React.FC = () => {
                   <>
                     <Link
                       to="/login"
-                      className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-[#22D3EE] hover:bg-[#67e8f9] text-[#080D1B] font-semibold text-sm transition-all shadow-lg shadow-cyan-500/25"
+                      className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-gradient-to-r from-cyan-400 to-blue-500 hover:from-cyan-300 hover:to-blue-400 text-[#090e21] font-bold text-sm transition-all shadow-lg shadow-cyan-500/25 active:scale-95"
                     >
                       <span>Access Your Dashboard</span>
                       <ArrowRight className="w-4 h-4" />
                     </Link>
                     <a
                       href="#how-it-works"
-                      className="inline-flex items-center gap-2 px-5 py-3 rounded-xl bg-[#151F35] hover:bg-[#1C2942] text-[#F1F5F9] font-medium text-sm border border-white/10 transition-colors"
+                      className="inline-flex items-center gap-2 px-5 py-3 rounded-xl bg-[#121c38] hover:bg-[#182444] text-white font-medium text-sm border border-white/10 transition-colors"
                     >
                       <span>Explore How It Works</span>
                     </a>
                   </>
                 )}
-              </div>
+              </motion.div>
             </div>
 
             {/* Right Column: Hero Visual Asset */}
-            <div className="lg:col-span-5 relative">
-              <div className="relative rounded-2xl overflow-hidden border border-white/10 shadow-2xl bg-[#151F35] group">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.96 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ delay: 0.2 }}
+              className="lg:col-span-5 relative"
+            >
+              <div className="relative rounded-3xl overflow-hidden border border-white/10 shadow-2xl dash-card dash-card-glow group">
                 <img
                   src={heroImage}
                   alt="CampusResolve AI University Operations Center"
-                  className="w-full h-auto aspect-16/10 object-cover transform group-hover:scale-[1.02] transition-transform duration-500"
+                  className="w-full h-auto aspect-16/10 object-cover transform group-hover:scale-[1.02] transition-transform duration-500 opacity-90"
                   referrerPolicy="no-referrer"
                 />
-                <div className="absolute inset-0 bg-gradient-to-t from-[#080D1B] via-transparent to-transparent opacity-80" />
-                <div className="absolute bottom-4 left-4 right-4 p-3 rounded-xl bg-[#080D1B]/85 backdrop-blur-md border border-white/10 flex items-center justify-between">
+                <div className="absolute inset-0 bg-gradient-to-t from-[#090e21] via-transparent to-transparent opacity-80" />
+                <div className="absolute bottom-4 left-4 right-4 p-3.5 rounded-2xl bg-[#090e21]/85 backdrop-blur-md border border-white/10 flex items-center justify-between shadow-xl">
                   <div className="flex items-center gap-2.5">
-                    <div className="w-2 h-2 rounded-full bg-cyan-400 animate-pulse" />
-                    <span className="text-xs font-semibold text-[#F1F5F9]">
+                    <div className="w-2.5 h-2.5 rounded-full bg-cyan-400 animate-pulse shadow-[0_0_8px_rgba(34,211,238,0.8)]" />
+                    <span className="text-xs font-semibold text-white">
                       Autonomous Operations Engine
                     </span>
                   </div>
-                  <span className="text-[11px] text-[#A7B4CC] tabular-nums">Agentic AI Live</span>
+                  <span className="text-[11px] text-cyan-300 font-mono">Real-Time API</span>
                 </div>
               </div>
-            </div>
+            </motion.div>
           </div>
         </div>
       </section>
 
       {/* How It Works Section */}
-      <section id="how-it-works" className="py-20 border-b border-white/5 bg-[#080D1B]">
+      <section id="how-it-works" className="py-20 border-b border-white/5 relative">
         <div className="max-w-7xl mx-auto px-6">
           <div className="text-center max-w-3xl mx-auto mb-16">
             <span className="text-xs font-semibold tracking-wider uppercase text-cyan-400">
               Accountable Operations Pipeline
             </span>
-            <h2 className="text-3xl sm:text-4xl font-bold text-[#F1F5F9] mt-2 tracking-tight">
+            <h2 className="text-3xl sm:text-4xl font-bold text-white mt-2 tracking-tight">
               From Intake to Verified Resolution
             </h2>
-            <p className="text-sm text-[#A7B4CC] mt-3 leading-relaxed">
+            <p className="text-sm text-[#8c9fc2] mt-3 leading-relaxed">
               CampusResolve combines autonomous agentic intelligence with strict human verification.
               AI assists with triage, while authorized staff retain final decision-making power.
             </p>
@@ -240,40 +275,40 @@ export const LandingPage: React.FC = () => {
               <div
                 key={step.num}
                 onClick={() => setActiveWorkflowStep(idx)}
-                className={`cursor-pointer p-5 rounded-xl border transition-all ${
+                className={`cursor-pointer p-5 rounded-2xl border transition-all ${
                   activeWorkflowStep === idx
-                    ? 'bg-[#151F35] border-cyan-400/40 shadow-lg shadow-cyan-950/40'
-                    : 'bg-[#10182B] border-white/5 hover:border-white/10 hover:bg-[#151F35]/60'
+                    ? 'dash-card dash-card-glow border-cyan-400/40 shadow-xl shadow-cyan-950/40'
+                    : 'bg-[#121c38]/60 border-white/5 hover:border-white/15 hover:bg-[#121c38]'
                 }`}
               >
                 <div className="flex items-center justify-between mb-3">
-                  <span className="text-xs font-bold text-cyan-400 tabular-nums">{step.num}</span>
-                  <span className="text-[10px] font-medium text-[#A7B4CC]">{step.badge}</span>
+                  <span className="text-xs font-bold text-cyan-400 font-mono tabular-nums">{step.num}</span>
+                  <span className="text-[10px] font-medium text-[#8c9fc2]">{step.badge}</span>
                 </div>
-                <h3 className="text-sm font-semibold text-[#F1F5F9] mb-1.5">{step.title}</h3>
-                <p className="text-xs text-[#A7B4CC] leading-relaxed line-clamp-3">{step.desc}</p>
+                <h3 className="text-sm font-semibold text-white mb-1.5">{step.title}</h3>
+                <p className="text-xs text-[#8c9fc2] leading-relaxed line-clamp-3">{step.desc}</p>
               </div>
             ))}
           </div>
 
           {/* Detailed Active Step Inspector */}
-          <div className="mt-8 p-6 rounded-2xl bg-[#151F35] border border-white/10 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+          <div className="mt-8 p-6 rounded-2xl dash-card dash-card-glow flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
             <div className="flex items-center gap-4">
               <div className="w-12 h-12 rounded-xl bg-cyan-500/10 border border-cyan-500/20 text-cyan-400 flex items-center justify-center shrink-0">
                 <Cpu className="w-6 h-6" />
               </div>
               <div>
-                <h4 className="text-sm font-bold text-[#F1F5F9]">
+                <h4 className="text-sm font-bold text-white">
                   Step {workflowSteps[activeWorkflowStep].num}: {workflowSteps[activeWorkflowStep].title}
                 </h4>
-                <p className="text-xs text-[#A7B4CC] mt-0.5">
+                <p className="text-xs text-[#8c9fc2] mt-0.5">
                   {workflowSteps[activeWorkflowStep].detail}
                 </p>
               </div>
             </div>
             <Link
               to="/login"
-              className="px-4 py-2 text-xs font-semibold text-[#080D1B] bg-[#22D3EE] rounded-lg hover:bg-[#67e8f9] transition-colors whitespace-nowrap shrink-0"
+              className="px-4 py-2 text-xs font-semibold text-[#090e21] bg-gradient-to-r from-cyan-400 to-blue-500 rounded-xl hover:from-cyan-300 hover:to-blue-400 transition-all whitespace-nowrap shrink-0 shadow-md shadow-cyan-500/20 active:scale-95"
             >
               Test Workflow Now
             </Link>
@@ -282,16 +317,16 @@ export const LandingPage: React.FC = () => {
       </section>
 
       {/* Feature Showcase Grid */}
-      <section id="features" className="py-20 border-b border-white/5 bg-[#080D1B]">
+      <section id="features" className="py-20 border-b border-white/5 relative">
         <div className="max-w-7xl mx-auto px-6">
           <div className="text-center max-w-3xl mx-auto mb-16">
-            <span className="text-xs font-semibold tracking-wider uppercase text-violet-400">
+            <span className="text-xs font-semibold tracking-wider uppercase text-cyan-400">
               System Capabilities
             </span>
-            <h2 className="text-3xl sm:text-4xl font-bold text-[#F1F5F9] mt-2 tracking-tight">
+            <h2 className="text-3xl sm:text-4xl font-bold text-white mt-2 tracking-tight">
               Engineered for Real Campus Accountability
             </h2>
-            <p className="text-sm text-[#A7B4CC] mt-3">
+            <p className="text-sm text-[#8c9fc2] mt-3">
               Purpose-built features designed for university faculties, campus security, student unions, and facilities.
             </p>
           </div>
@@ -302,13 +337,13 @@ export const LandingPage: React.FC = () => {
               return (
                 <div
                   key={idx}
-                  className="p-6 rounded-xl bg-[#151F35] border border-white/5 hover:border-white/10 transition-colors flex flex-col"
+                  className="p-6 rounded-2xl dash-card dash-card-glow flex flex-col hover:border-cyan-500/25 transition-all group"
                 >
-                  <div className="w-10 h-10 rounded-lg bg-[#1C2942] border border-white/5 flex items-center justify-center mb-4">
+                  <div className="w-10 h-10 rounded-xl bg-[#182444] border border-white/5 flex items-center justify-center mb-4 group-hover:scale-105 transition-transform">
                     <Icon className={`w-5 h-5 ${feat.accent}`} />
                   </div>
-                  <h3 className="text-sm font-semibold text-[#F1F5F9] mb-2">{feat.title}</h3>
-                  <p className="text-xs text-[#A7B4CC] leading-relaxed flex-1">{feat.description}</p>
+                  <h3 className="text-sm font-bold text-white mb-2">{feat.title}</h3>
+                  <p className="text-xs text-[#8c9fc2] leading-relaxed flex-1">{feat.description}</p>
                 </div>
               );
             })}
@@ -317,40 +352,40 @@ export const LandingPage: React.FC = () => {
       </section>
 
       {/* Dedicated AI Follow-up Approval Highlight */}
-      <section id="approvals" className="py-20 border-b border-white/5 bg-[#10182B]/40">
+      <section id="approvals" className="py-20 border-b border-white/5 relative">
         <div className="max-w-7xl mx-auto px-6">
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 items-center">
             <div className="lg:col-span-6 space-y-4">
-              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-md bg-violet-500/10 border border-violet-500/20 text-xs text-violet-300 font-medium">
+              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-violet-500/10 border border-violet-500/25 text-xs text-violet-300 font-medium">
                 <Sparkles className="w-3.5 h-3.5" />
                 <span>Featured Autonomous Innovation</span>
               </div>
-              <h2 className="text-3xl sm:text-4xl font-bold text-[#F1F5F9] tracking-tight">
+              <h2 className="text-3xl sm:text-4xl font-bold text-white tracking-tight">
                 AI Follow-up Approval Center
               </h2>
-              <p className="text-sm text-[#A7B4CC] leading-relaxed">
-                When student complaints face delays, our connected n8n Follow-up Agent automatically detects
-                staleness and submits recommendations (`remind`, `escalate`, or `none`).
+              <p className="text-sm text-[#8c9fc2] leading-relaxed">
+                When student complaints face delays, our connected Follow-up Agent automatically detects
+                staleness and submits recommendations (<code className="text-cyan-300">remind</code>, <code className="text-amber-300">escalate</code>, or <code className="text-[#8c9fc2]">none</code>).
               </p>
-              <div className="space-y-3 pt-2 text-xs text-[#A7B4CC]">
+              <div className="space-y-3 pt-2 text-xs text-[#8c9fc2]">
                 <div className="flex items-start gap-2.5">
                   <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
                   <span>
-                    <strong className="text-[#F1F5F9]">Zero Unchecked Escalations:</strong> Reminders are never
+                    <strong className="text-white">Zero Unchecked Escalations:</strong> Reminders are never
                     dispatched until verified by university administration.
                   </span>
                 </div>
                 <div className="flex items-start gap-2.5">
                   <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
                   <span>
-                    <strong className="text-[#F1F5F9]">Real PATCH Verification:</strong> Direct integration with{' '}
+                    <strong className="text-white">Real PATCH Verification:</strong> Direct integration with{' '}
                     <code className="text-cyan-300">PATCH /followup-approvals/{'{id}'}</code>.
                   </span>
                 </div>
                 <div className="flex items-start gap-2.5">
                   <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
                   <span>
-                    <strong className="text-[#F1F5F9]">Audited Reasoning:</strong> Plain-language AI context
+                    <strong className="text-white">Audited Reasoning:</strong> Plain-language AI context
                     explaining exactly why the reminder or escalation is recommended.
                   </span>
                 </div>
@@ -359,37 +394,37 @@ export const LandingPage: React.FC = () => {
 
             <div className="lg:col-span-6">
               {/* Approval Card Mockup */}
-              <div className="p-6 rounded-2xl bg-[#151F35] border border-cyan-500/20 shadow-xl space-y-4">
-                <div className="flex items-center justify-between pb-4 border-b border-white/5">
+              <div className="p-6 rounded-2xl dash-card dash-card-glow border-cyan-500/20 shadow-2xl space-y-4">
+                <div className="flex items-center justify-between pb-4 border-b border-white/10">
                   <div className="flex items-center gap-2">
-                    <span className="text-xs font-bold text-cyan-400">FA-8921</span>
-                    <span className="text-xs text-[#A7B4CC]">·</span>
-                    <span className="text-xs text-amber-400 font-medium">Action: Remind</span>
+                    <span className="text-xs font-bold text-cyan-400 font-mono">FA-8921</span>
+                    <span className="text-xs text-[#617498]">·</span>
+                    <span className="text-xs text-amber-300 font-medium">Action: Remind</span>
                   </div>
-                  <span className="text-xs text-amber-400 font-semibold px-2 py-0.5 bg-amber-400/10 rounded border border-amber-400/20">
+                  <span className="text-xs text-amber-300 font-semibold px-2 py-0.5 bg-amber-400/10 rounded-md border border-amber-400/20">
                     Pending Review
                   </span>
                 </div>
                 <div>
-                  <h4 className="text-sm font-semibold text-[#F1F5F9]">
+                  <h4 className="text-sm font-semibold text-white">
                     Main Library 3rd Floor HVAC Malfunction
                   </h4>
-                  <p className="text-xs text-[#A7B4CC] mt-1.5 leading-relaxed">
-                    <strong>AI Recommendation Reason:</strong> “Complaint has remained in ‘assigned’ status for
+                  <p className="text-xs text-[#8c9fc2] mt-1.5 leading-relaxed">
+                    <strong className="text-white">AI Recommendation Reason:</strong> “Complaint has remained in ‘assigned’ status for
                     over 48 hours without a staff diagnostic update. Exam season study halls are heavily impacted.”
                   </p>
                 </div>
-                <div className="flex items-center justify-end gap-3 pt-3 border-t border-white/5">
-                  <span className="text-[11px] text-[#A7B4CC] mr-auto">Human Approval Required</span>
+                <div className="flex items-center justify-end gap-3 pt-3 border-t border-white/10">
+                  <span className="text-[11px] text-[#8c9fc2] mr-auto">Human Approval Required</span>
                   <button
                     onClick={() => navigate(isAuthenticated ? '/admin/approvals' : '/login')}
-                    className="px-3 py-1.5 text-xs font-medium text-rose-300 bg-rose-500/10 hover:bg-rose-500/20 border border-rose-500/20 rounded-lg transition-colors"
+                    className="px-3.5 py-1.5 text-xs font-medium text-rose-300 bg-rose-500/10 hover:bg-rose-500/20 border border-rose-500/20 rounded-lg transition-colors"
                   >
                     Reject
                   </button>
                   <button
                     onClick={() => navigate(isAuthenticated ? '/admin/approvals' : '/login')}
-                    className="px-3 py-1.5 text-xs font-medium text-emerald-300 bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/20 rounded-lg transition-colors"
+                    className="px-3.5 py-1.5 text-xs font-semibold text-emerald-300 bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/20 rounded-lg transition-colors"
                   >
                     Approve Reminder
                   </button>
@@ -401,30 +436,30 @@ export const LandingPage: React.FC = () => {
       </section>
 
       {/* Platform Overview Section */}
-      <section id="overview" className="py-20 border-b border-white/5 bg-[#080D1B]">
+      <section id="overview" className="py-20 border-b border-white/5 relative">
         <div className="max-w-7xl mx-auto px-6">
-          <div className="p-8 sm:p-12 rounded-2xl bg-gradient-to-br from-[#10182B] via-[#151F35] to-[#1C2942] border border-white/10 shadow-2xl">
-            <div className="max-w-3xl">
+          <div className="p-8 sm:p-12 rounded-3xl dash-card dash-card-glow border border-white/10 shadow-2xl relative overflow-hidden">
+            <div className="max-w-3xl relative z-10">
               <span className="text-xs font-semibold tracking-wider uppercase text-cyan-400">
                 Platform Operations Showcase
               </span>
-              <h2 className="text-2xl sm:text-3xl font-bold text-[#F1F5F9] mt-2">
+              <h2 className="text-2xl sm:text-3xl font-bold text-white mt-2">
                 Unified Operations for Campus Resolution
               </h2>
-              <p className="text-sm text-[#A7B4CC] mt-3 leading-relaxed">
-                CampusResolve AI is connected to production backend services, database, and n8n
-                agentic workflows. Every submission, status change, and approval triggers live API calls.
+              <p className="text-sm text-[#8c9fc2] mt-3 leading-relaxed">
+                CampusResolve AI is connected to production backend services, database, and autonomous
+                workflows. Every submission, status change, and approval triggers live API calls.
               </p>
               <div className="mt-8 flex flex-wrap items-center gap-4">
                 <Link
                   to="/login"
-                  className="px-6 py-3 rounded-xl bg-[#22D3EE] hover:bg-[#67e8f9] text-[#080D1B] font-semibold text-sm transition-colors shadow-md shadow-cyan-500/20"
+                  className="px-6 py-3 rounded-xl bg-gradient-to-r from-cyan-400 to-blue-500 hover:from-cyan-300 hover:to-blue-400 text-[#090e21] font-bold text-sm transition-all shadow-lg shadow-cyan-500/20 active:scale-95"
                 >
                   Access Resolution Console
                 </Link>
                 <Link
                   to="/signup"
-                  className="px-5 py-3 rounded-xl bg-[#151F35] hover:bg-[#1C2942] text-[#F1F5F9] font-medium text-sm border border-white/10 transition-colors"
+                  className="px-5 py-3 rounded-xl bg-[#182444] hover:bg-[#1f2e54] text-white font-medium text-sm border border-white/10 transition-colors"
                 >
                   Register New Student Account
                 </Link>
@@ -435,11 +470,11 @@ export const LandingPage: React.FC = () => {
       </section>
 
       {/* Footer */}
-      <footer className="py-12 bg-[#080D1B] text-[#A7B4CC] text-xs border-t border-white/5">
+      <footer className="py-12 bg-[#090e21] text-[#8c9fc2] text-xs border-t border-white/5">
         <div className="max-w-7xl mx-auto px-6 flex flex-col sm:flex-row items-center justify-between gap-6">
           <div className="flex items-center gap-2.5">
             <ShieldCheck className="w-4 h-4 text-cyan-400" />
-            <span className="font-semibold text-[#F1F5F9]">CampusResolve AI</span>
+            <span className="font-bold text-white">CampusResolve AI</span>
             <span>· Intelligent University Complaint Management</span>
           </div>
           <div className="flex items-center gap-6">
@@ -449,7 +484,7 @@ export const LandingPage: React.FC = () => {
             <a href="https://university-complain-system.vercel.app/openapi.json" target="_blank" rel="noopener noreferrer" className="hover:text-cyan-300 transition-colors">
               OpenAPI Contract
             </a>
-            <span className="text-[#A7B4CC]/60">Campus Operations 2026</span>
+            <span className="text-[#617498]">Campus Operations 2026</span>
           </div>
         </div>
       </footer>
